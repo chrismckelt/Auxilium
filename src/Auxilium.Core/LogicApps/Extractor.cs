@@ -22,7 +22,7 @@ namespace Auxilium.Core.LogicApps
 
      
 
-        public async Task Run()
+        public async Task Run(DateTime? startDateTime = null)
         {
             //Token = ApiClient.GetToken();
             Token = AuthUtil.GetTokenFromConsole();
@@ -31,8 +31,8 @@ namespace Auxilium.Core.LogicApps
             await Load();
            
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            var max = Data.Select(x => x.StartTimeUtc).Max();
-			await ExtractAll(false, max.GetValueOrDefault(DateTime.UtcNow.Date.AddDays(-1)).AddHours(-1), DateTime.UtcNow);
+          
+			await ExtractAll(true, startDateTime.GetValueOrDefault(DateTime.UtcNow.Date.AddDays(-1)).AddHours(-1), DateTime.UtcNow);
             stopwatch.Stop();
             Console.WriteLine($"Total Minutes: {stopwatch.Elapsed.TotalMinutes}");
 		}
@@ -78,14 +78,14 @@ namespace Auxilium.Core.LogicApps
 			}
 		}
 
-		async System.Threading.Tasks.Task ExtractAll(bool failedOnly = false, DateTime? startDateTime=null, DateTime? endDateTime=null)
+		async System.Threading.Tasks.Task ExtractAll(bool failedOnly = false, DateTime? startDateTime=null, DateTime? endDateTime=null, bool export = true)
 		{
             
             foreach (var x in LogicApps)
 			{
 				try
 				{
-					await ExtractLogicApps(x.Key, x.Value, failedOnly, true, startDateTime:startDateTime,endDateTime:endDateTime);
+					await ExtractLogicApps(x.Key, x.Value, failedOnly, export, startDateTime:startDateTime,endDateTime:endDateTime);
 				}
 				catch (Exception ex)
 				{

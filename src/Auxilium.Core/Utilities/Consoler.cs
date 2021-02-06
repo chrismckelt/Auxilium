@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace Auxilium.Core.Utilities
 {
@@ -44,30 +45,37 @@ namespace Auxilium.Core.Utilities
             Console.ForegroundColor = col;
         }
 
-		public static void TitleStart(string text)
+		public static void TitleStart(string text = null)
 		{
             var col = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.Yellow;
+			Console.ForegroundColor = ConsoleColor.White;
 			Console.WriteLine("---- start ----");
-			Console.WriteLine(text);
-			Console.ForegroundColor = ConsoleColor.Gray;
+			if (!string.IsNullOrEmpty(text))Console.WriteLine(text);
             Console.ForegroundColor = col;
 		}
 
-		public static void TitleEnd(string text)
+		public static void TitleEnd(string text = null)
 		{
             var col = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine(text);
+			Console.ForegroundColor = ConsoleColor.White;
+            if (!string.IsNullOrEmpty(text)) Console.WriteLine(text);
 			Console.WriteLine("---- end ----");
             Console.ForegroundColor = col;
 		}
 
-		public static void Write(string text)
+		public static void Write(string text, bool newLine=true)
 		{
-			Console.WriteLine(text);
-			Trace.WriteLine(text);
-		}
+            if (newLine)
+            {
+                Console.WriteLine(text);
+                Trace.WriteLine(text);
+			}
+            else
+            {
+				Console.Write(text);
+				Trace.Write(text);
+            }
+        }
 
 		public static void Write(string format, object arg)
 		{

@@ -673,13 +673,12 @@
   <Namespace>System.Threading.Tasks</Namespace>
 </Query>
 
-public List<LogicAppExtract> Data = new List<LogicAppExtract>();
 public IPagedCollection<IResourceGroup> ResourceGroups { get; set; }
 public IList<KeyValuePair<string, string>> LogicApps = new List<KeyValuePair<string, string>>();
 public static IApiClient Client { get; set; }
 public static string Token { get; set; }
 static readonly string TenantId = AzureEnvVars.TenantId; // override
-static readonly string SubscriptionId = AzureEnvVars.SubscriptionId;       // run az account set --subscription YOUR_SUB_GUID
+static readonly string SubscriptionId = AzureEnvVars.SubscriptionId;       // if using azure cli ensure you have set your subscription - run az account set --subscription YOUR_SUB_GUID
 const string ExportFolder = @"c:\temp\logic-app-extracts\";
 private static Extractor _extractor;
 
@@ -688,35 +687,36 @@ async System.Threading.Tasks.Task Main()
 	Token = AuthUtil.GetTokenFromConsole();
 	Client = new ApiClient(TenantId, SubscriptionId, Token);
 	
+	// EXTRACT
+	// extract logic app state for chosen subscription
+	await Extract(); // extract last 24 hours
+	await Export(); // export to disk ExportFolder
+	
+	// ANALYSE
 	// load subscription / resource groups / logic apps and display
 	//await Load();
-
-	// run extract
-	_extractor = new Extractor();
-	_extractor.Data = LoadDataFromDisk();
-	await _extractor.Run();
-	await Export();
-
+	
 	// search failed and optionally replay
 	string search = "502085970";
-	Data
+	_extractor.Data
 //	.Where(x => Contains(x.Output, search) || Contains(x.Input, search))
 	.Distinct()
 	.Dump("data");
 
 	var ignore = new List<string>() { "Terminated", "ActionSkipped", "OK", "NotSpecified" };
-	var runs = from p in Data.Where(x => !ignore.Contains(x.StatusCode))
+	var runs = from p in _extractor.Data.Where(x => !ignore.Contains(x.StatusCode))
 			   group p by p.RunId into g
 			   select new { RunId = g.Key, ActionName = g.ToList().Where(x => x.RunId == g.Key).Distinct() };
 
 	runs.Dump("runs");
 
-	var failed = Data
+	var failed = _extractor.Data
 	.Where(x => x.StartTimeUtc > DateTime.UtcNow.AddHours(-24))
 	.Where(x => x.Status == "Failed")
 	.Distinct()
 	.Dump("failed");
-	
+		
+	// REPLAY FAILED
 	//await ReplayFailed(failed);
 }
 
@@ -752,6 +752,14 @@ async Task Load()
 	await GetLogicApps();
 }
 
+async Task Extract(DateTime? startDateTime = null)
+{
+	// run extract
+	_extractor = new Extractor();
+	_extractor.Data = LoadDataFromDisk();
+	await _extractor.Run(startDateTime.GetValueOrDefault(DateTime.UtcNow.Date.AddDays(-1)));
+}
+
 private static List<LogicAppExtract> LoadDataFromDisk()
 {
 	var data = new List<LogicAppExtract>();
@@ -768,7 +776,6 @@ private static List<LogicAppExtract> LoadDataFromDisk()
 					data.Add(d);
 				}
 			}
-
 		}
 	}
 
@@ -829,7 +836,6 @@ IList<Extractor.Poco> LoadFailedFromFile()
 	return list;
 }
 
-
 async Task Resubmit(LogicAppExtract failed)
 {
 	Console.WriteLine($"{SubscriptionId} {failed.ResourceGroup}  {failed.LogicAppName} {failed.ActionName} {failed.RunId}");
@@ -877,7 +883,7 @@ void FindFailed()
 {
 	var failed = new List<dynamic>();
 
-	foreach (var item in Data)
+	foreach (var item in _extractor.Data)
 	{
 		try
 		{

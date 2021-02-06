@@ -35,7 +35,8 @@ namespace Auxilium.Host
         {
             _extractor = new Extractor();
             _extractor.Data = LoadDataFromDisk();
-            await _extractor.Run();
+            var max = _extractor.Data.Select(x => x.StartTimeUtc).Max();
+            await _extractor.Run(max);
             await  Export();
         }
         private static List<LogicAppExtract> LoadDataFromDisk()
