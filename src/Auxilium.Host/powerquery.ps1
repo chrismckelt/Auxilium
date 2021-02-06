@@ -2,7 +2,7 @@ Import-Module Az
 
 $basedir = $PSScriptRoot
 If ([string]::IsNullOrEmpty("$basedir")) {
-    $basedir = "C:\dev\insight\Auxilium\Auxilium.Host\bin\Debug\netcoreapp2.2"; ## can move to env variable if diff among devs
+    $basedir = "C:\dev\Axurcio\Auxilium\Auxilium.Host\bin\Debug\netcoreapp2.2"; ## can move to env variable if diff among devs
 }
 $dll = [System.IO.Path]::Combine($basedir, "Auxilium.Core.dll")
 Add-Type -Path $dll
