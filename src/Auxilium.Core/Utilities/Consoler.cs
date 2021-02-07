@@ -117,11 +117,8 @@ namespace Auxilium.Core.Utilities
 		{
             var col = Console.ForegroundColor;
 			Console.ForegroundColor = ConsoleColor.Green;
-			Console.WriteLine("");
-			Console.WriteLine("");
-			Console.WriteLine("-------------------------------");
+            Console.WriteLine(Breaker);
 			Console.WriteLine("Success");
-			Console.WriteLine("");
             Console.ForegroundColor = col;
 			Pause(prompt);
 		}
@@ -130,6 +127,7 @@ namespace Auxilium.Core.Utilities
 		{
             var col = Console.ForegroundColor; 
             Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(Breaker);
 			Console.WriteLine("Exception");
 			Console.ForegroundColor = ConsoleColor.DarkYellow;
 			Console.WriteLine("");

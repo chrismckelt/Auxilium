@@ -686,11 +686,13 @@ async System.Threading.Tasks.Task Main()
 {
 	Token = AuthUtil.GetTokenFromConsole();
 	Client = new ApiClient(TenantId, SubscriptionId, Token);
-	
+
 	// EXTRACT
 	// extract logic app state for chosen subscription
-	await Extract(); // extract last 24 hours
-	await Export(); // export to disk ExportFolder
+	_extractor = new Extractor();
+	_extractor.Data = LoadDataFromDisk();
+	//await _extractor.Run(DateTime.UtcNow.Date.AddDays(-1));
+	//await Export(); // export to disk ExportFolder
 	
 	// ANALYSE
 	// load subscription / resource groups / logic apps and display
@@ -750,14 +752,6 @@ async Task Load()
 	await GetSubscriptions();
 	await GetResourceGroups();
 	await GetLogicApps();
-}
-
-async Task Extract(DateTime? startDateTime = null)
-{
-	// run extract
-	_extractor = new Extractor();
-	_extractor.Data = LoadDataFromDisk();
-	await _extractor.Run(startDateTime.GetValueOrDefault(DateTime.UtcNow.Date.AddDays(-1)));
 }
 
 private static List<LogicAppExtract> LoadDataFromDisk()

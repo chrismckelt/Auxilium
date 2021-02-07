@@ -24,14 +24,13 @@ namespace Auxilium.Core.LogicApps
         {
             PageCountToRetrieve = 50;
             Filter = LogicAppRunFilter.Failed;
-
         }
 
         public async Task<AzureLogicApps> ListAsync(string subscriptionId, string resourceGroupName)
         {
             var url =
                 $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Logic/workflows?api-version=2016-06-01";
-            
+
             var items = new List<AzureLogicAppValue>();
             var breaker = 0;
             var result = await Utility.GetResourceAsync<AzureLogicApps>(url, Token).ConfigureAwait(false);
@@ -40,8 +39,8 @@ namespace Auxilium.Core.LogicApps
             var link = result.NextLink;
             while (!string.IsNullOrWhiteSpace(link) && breaker < PageCountToRetrieve)
             {
-                Console.WriteLine("Logic app runs for page " + breaker);
-                Console.WriteLine(link);
+                Consoler.Write("Logic app runs for page " + breaker);
+                Consoler.Write(link);
                 result = await Utility.GetResourceAsync<AzureLogicApps>(link, Token).ConfigureAwait(false);
                 link = result.NextLink;
 
@@ -56,22 +55,24 @@ namespace Auxilium.Core.LogicApps
         }
 
         public async Task<AzureLogicAppWorkflowRuns> WorkflowRunListAsync(string subscriptionId,
-            string resourceGroupName, string logicAppName, DateTime? startTimeBegin = new DateTime?(), DateTime? startTimeEnd = new DateTime?())
+            string resourceGroupName, string logicAppName,bool failedOnly=false, DateTime? startTimeBegin = null,
+            DateTime? startTimeEnd = null)
         {
             LogicAppName = logicAppName;
 
             //Console.Clear();
             var runs = new List<LogicAppWorkflowRunValue>();
 
-            var search = $"$filter=status eq '{Filter.GetDescription()}'";
+            string search = $"$filter=";
+            if (failedOnly)
+            {
+                search = $"$filter=status eq 'failed' and";
+            }
+
             if (startTimeBegin != null)
-            {
-                search += $" and startTime ge { startTimeBegin.Value.ToUniversalTime() :yyyy-MM-ddTHH:mm:ssZ}";
-            }
+                search += $" startTime ge {startTimeBegin.Value.ToUniversalTime():yyyy-MM-ddTHH:mm:ssZ}";
             if (startTimeEnd != null)
-            {
-                search += $" and startTime le { startTimeEnd.Value.ToUniversalTime() :yyyy-MM-ddTHH:mm:ssZ}";
-            }
+                search += $" and startTime le {startTimeEnd.Value.ToUniversalTime():yyyy-MM-ddTHH:mm:ssZ}";
 
             search += "&orderby=startTime desc";
 
@@ -84,8 +85,8 @@ namespace Auxilium.Core.LogicApps
             var link = result.NextLink;
             while (!string.IsNullOrWhiteSpace(link) && breaker < PageCountToRetrieve)
             {
-                Console.WriteLine("Logic app runs for page " + breaker);
-                Console.WriteLine(link);
+                Consoler.Write("Logic app runs for page " + breaker);
+                Consoler.Write(link);
                 result = await Utility.GetResourceAsync<AzureLogicAppWorkflowRuns>(link, Token);
                 link = result.NextLink;
 
@@ -103,17 +104,15 @@ namespace Auxilium.Core.LogicApps
         public async Task<LogicAppRunAction> WorkflowRunGetActionAsync(string subscriptionId,
             string resourceGroupName, string logicAppName, string runId, string actionName)
         {
-            
             LogicAppName = logicAppName;
-             
-            //Console.Clear();
+
             var runActionResult = new LogicAppRunAction()
             {
                 SubscriptionId = subscriptionId,
                 ResourceGroupName = resourceGroupName,
                 LogicAppName = logicAppName,
                 RunId = runId,
-                ActionName = actionName,
+                ActionName = actionName
             };
 
             var url =
@@ -156,7 +155,7 @@ namespace Auxilium.Core.LogicApps
             string subscriptionId, string resourceGroupName, string workflowName)
         {
             //string filter = "properties.status eq 'Success'";
-            var search = "";// "&`$filter=properties.status eq 'Success'";
+            var search = ""; // "&`$filter=properties.status eq 'Success'";
             var url =
                 $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Logic/workflows/{workflowName}/triggers?api-version=2016-06-01&{search}";
             return await Utility.GetResourceAsync<AzureLogicAppWorkflowTriggers>(url, Token);
@@ -172,15 +171,16 @@ namespace Auxilium.Core.LogicApps
         /// <param name="resourceGroupName"></param>
         /// <param name="logicAppName"></param>
         /// <returns></returns>
-        public async Task<AzureLogicAppWorkflowTriggerHistoryRun> WorkflowTriggerHistoryListAsync(string subscriptionId, string trigger,
+        public async Task<AzureLogicAppWorkflowTriggerHistoryRun> WorkflowTriggerHistoryListAsync(string subscriptionId,
+            string trigger,
             string resourceGroupName, string logicAppName)
         {
             LogicAppName = logicAppName;
-            
+
             var url =
                 $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Logic/workflows/{logicAppName}/triggers/{trigger}/histories?api-version=2016-06-01";
-            Console.WriteLine("WorkflowTriggerHistoryList");
-            Console.WriteLine(url);
+
+            Consoler.Write(url);
             return await Utility.GetResourceAsync<AzureLogicAppWorkflowTriggerHistoryRun>(url, Token);
         }
 
@@ -190,8 +190,9 @@ namespace Auxilium.Core.LogicApps
         public async Task<LogicAppResubmittedRun> ResubmitAsync(string subscriptionId,
             string resourceGroupName, string logicAppName, string triggerHistoryRunId, string triggerName = "manual")
         {
-            string url = $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Logic/workflows/{logicAppName}/triggers/{triggerName}/histories/{triggerHistoryRunId}/resubmit?api-version=2016-06-01";
-            Console.WriteLine($"Resubmit ${url}");
+            var url =
+                $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Logic/workflows/{logicAppName}/triggers/{triggerName}/histories/{triggerHistoryRunId}/resubmit?api-version=2016-06-01";
+            Consoler.Write($"Resubmit ${url}");
 
             using (var client = new HttpClient())
             {
@@ -201,7 +202,7 @@ namespace Auxilium.Core.LogicApps
                     ResourceGroupName = resourceGroupName,
                     LogicAppName = logicAppName,
                     Trigger = triggerName,
-                    OldRunId = triggerHistoryRunId,
+                    OldRunId = triggerHistoryRunId
                 };
 
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
@@ -216,10 +217,7 @@ namespace Auxilium.Core.LogicApps
                     {
                         var newRunId = response.Headers.GetValues("x-ms-workflow-run-id").FirstOrDefault();
                         var correlationId = response.Headers.GetValues("x-ms-correlation-id").FirstOrDefault();
-                        if (!string.IsNullOrEmpty(newRunId))
-                        {
-                            logicAppResubmittedRun.NewRunId = newRunId;
-                        }
+                        if (!string.IsNullOrEmpty(newRunId)) logicAppResubmittedRun.NewRunId = newRunId;
 
                         logicAppResubmittedRun.Correlation = correlationId;
                     }
@@ -249,15 +247,16 @@ namespace Auxilium.Core.LogicApps
                 var response = await client.GetAsync(uri);
                 response.EnsureSuccessStatusCode();
                 if (response.IsSuccessStatusCode) return await response.Content.ReadAsStringAsync();
-                Console.WriteLine("-----------------------------------------");
-                Console.WriteLine("GetContent");
-                Console.WriteLine(uri);
-                Console.WriteLine("-----------------------------------------");
+                Consoler.Write("-----------------------------------------");
+                Consoler.Write("GetContent");
+                Consoler.Write(uri);
+                Consoler.Write("-----------------------------------------");
                 throw new ApplicationException(response.ReasonPhrase);
             }
         }
 
-        public async Task<IEnumerable<LogicAppWorkflowRun>> FetchContentAsync(string subscriptionId, string resourceGroupName, string logicAppName, AzureLogicAppWorkflowRuns runs)
+        public async Task<IEnumerable<LogicAppWorkflowRun>> FetchContentAsync(string subscriptionId,
+            string resourceGroupName, string logicAppName, AzureLogicAppWorkflowRuns runs)
         {
             var data = new List<LogicAppWorkflowRun>();
             foreach (var value in runs.Value)
@@ -273,12 +272,9 @@ namespace Auxilium.Core.LogicApps
                 {
                     CreationTime = DateTime.UtcNow,
                     CreatorUserId = -1,
-
                     LogicAppName = logicAppName,
-
                     ResourceGroupName = resourceGroupName,
                     SubscriptionId = subscriptionId,
-
                     RunId = value.Id,
                     Name = value.Name,
                     StartTimeUtc = value.Properties.StartTime,
@@ -297,9 +293,6 @@ namespace Auxilium.Core.LogicApps
                     Code = value.Properties.Code,
                     ExtensionData = JsonConvert.SerializeObject(value)
                 };
-
-                //WorkflowRuns.InsertOnSubmit(item);
-                //SubmitChanges();
                 data.Add(item);
             }
 

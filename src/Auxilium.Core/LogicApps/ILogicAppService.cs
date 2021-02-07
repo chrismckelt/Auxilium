@@ -14,8 +14,8 @@ namespace Auxilium.Core.LogicApps
         Task<AzureLogicApps> ListAsync(string subscriptionId, string resourceGroupName);
 
         Task<AzureLogicAppWorkflowRuns> WorkflowRunListAsync(string subscriptionId,
-            string resourceGroupName, string logicAppName, DateTime? startTimeBegin = new DateTime?(),
-            DateTime? startTimeEnd = new DateTime?());
+            string resourceGroupName, string logicAppName, bool failedOnly=false, DateTime? startTimeBegin = null,
+            DateTime? startTimeEnd = null);
 
         Task<LogicAppRunAction> WorkflowRunGetActionAsync(string subscriptionId,
             string resourceGroupName, string logicAppName, string runId, string actionName);

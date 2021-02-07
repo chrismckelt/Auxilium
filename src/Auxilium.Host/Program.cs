@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Azure.Management.AppService.Fluent.Models;
 using Auxilium.Core;
 using Auxilium.Core.LogicApps;
+using Auxilium.Core.Utilities;
+using Microsoft.Azure.Management.ServiceBus.Fluent.Subscription.Definition;
 using Newtonsoft.Json;
 
 
@@ -24,11 +27,15 @@ namespace Auxilium.Host
 
         public static async Task Main(string[] args)
         {
-            Console.WriteLine("--------- Start ---------");
+            Consoler.TitleStart("Auxilium");
             await Run(args).ConfigureAwait(true);
 
             Console.WriteLine("--------- Completed ---------");
-            Console.ReadLine();
+
+            if (Debugger.IsAttached)
+            {
+                Console.ReadLine();
+            }
         }
 
         private static async Task Run(string[] args)
@@ -64,26 +71,43 @@ namespace Auxilium.Host
 
         private static async Task Export()
         {
-            foreach (var logicAppName in _extractor.Data.Select(x=>x.LogicAppName).Distinct())
+            var las = _extractor.LogicApps.Select(x => x.Value).Distinct();
+            foreach (var logicAppName in las)
             {
                 var exportItems = new List<LogicAppExtract>();
                 string file = Path.Combine(ExportFolder, $"{logicAppName}.json");
+                var data = _extractor.Data.Where(x => x.LogicAppName == logicAppName);
                 if (File.Exists(file))
                 {
+                    // load existing data from file and resave without duplicates
                     string content = await System.IO.File.ReadAllTextAsync(file);
-                    var list = JsonConvert.DeserializeObject<LogicAppExtract[]>(content);
+                    var list = JsonConvert.DeserializeObject<LogicAppExtract[]>(content).ToList();
                     if (list.Any())
                     {
-                        var unique = list.Except(_extractor.Data.Where(x=>x.LogicAppName== logicAppName));
-                        exportItems.AddRange(unique);
+                        foreach (var d in data)
+                        {
+                            if (!list.Any(x => x.RunId == d.RunId && x.ActionName == d.ActionName))
+                            {
+                                list.Add(d);
+                            }
+                        }
                     }
                     else
                     {
-                        exportItems.AddRange(_extractor.Data);
+                        list.AddRange(data);
                     }
+
+                    exportItems.AddRange(list);
                 }
-             
-                exportItems.SaveToFile(file);
+                else
+                {
+                    exportItems.AddRange(data);
+                }
+
+                if (exportItems.Any())
+                {
+                    exportItems.SaveToFile(file);
+                }
             }
         }
 

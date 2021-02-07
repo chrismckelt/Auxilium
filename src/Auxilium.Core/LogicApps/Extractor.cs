@@ -13,14 +13,13 @@ namespace Auxilium.Core.LogicApps
 {
     public class Extractor
     {
-        public List<LogicAppExtract> Data = new List<LogicAppExtract>();
-        public IPagedCollection<ISubscription> Subscriptions { get; set; }
-		public IPagedCollection<IResourceGroup> ResourceGroups { get; set; }
-		public IList<KeyValuePair<string, string>> LogicApps = new List<KeyValuePair<string, string>>();
         public static IApiClient Client { get; set; }
         public static string Token { get; set; }
 
-     
+        public List<LogicAppExtract> Data { get; set; } = new List<LogicAppExtract>();
+        public IPagedCollection<ISubscription> Subscriptions { get; set; }
+		public IPagedCollection<IResourceGroup> ResourceGroups { get; set; }
+		public IList<KeyValuePair<string, string>> LogicApps = new List<KeyValuePair<string, string>>();
 
         public async Task Run(DateTime? startDateTime = null)
         {
@@ -45,22 +44,33 @@ namespace Auxilium.Core.LogicApps
             ResourceGroups.Dump("Resource Groups");
 			await GetLogicApps();
 		}
+        public async System.Threading.Tasks.Task GetLogicApps()
+        {
+            foreach (var rg in ResourceGroups.Select(x => x.Name).Distinct())
+            {
+                var r = await Client.LogicAppService.ListAsync(AzureEnvVars.SubscriptionId, rg);
 
+                foreach (var x in r.Value)
+                {
+                    LogicApps.Add(new KeyValuePair<string, string>(rg, x.Name));
+                }
+            }
+        }
 
-		async Task ReplayFailed(IList<Poco> failed)
+        async Task ReplayFailed(IList<Poco> failed)
 		{
 			foreach (var f in failed)
 			{
 				try
 				{
-					await ExtractLogicApps(f.ResourceGroup, f.LogicAppName, true, true);
+					await ExtractLogicApps(f.ResourceGroup, f.LogicAppName, false, true);
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine(ex.Message);
 					Token = ApiClient.GetToken();
 					Client = new ApiClient(AzureEnvVars.TenantId, AzureEnvVars.SubscriptionId, Token);
-					await ExtractLogicApps(f.ResourceGroup, f.LogicAppName, true, true);
+					await ExtractLogicApps(f.ResourceGroup, f.LogicAppName, false, true);
 				}
 			}
 		}
@@ -78,9 +88,8 @@ namespace Auxilium.Core.LogicApps
 			}
 		}
 
-		async System.Threading.Tasks.Task ExtractAll(bool failedOnly = false, DateTime? startDateTime=null, DateTime? endDateTime=null, bool export = true)
+		public async System.Threading.Tasks.Task ExtractAll(bool failedOnly = false, DateTime? startDateTime=null, DateTime? endDateTime=null, bool export = true)
 		{
-            
             foreach (var x in LogicApps)
 			{
 				try
@@ -96,20 +105,7 @@ namespace Auxilium.Core.LogicApps
 			}
 		}
 
-        async System.Threading.Tasks.Task GetLogicApps()
-		{
-			foreach (var rg in ResourceGroups.Select(x => x.Name).Distinct())
-			{
-				var r = await Client.LogicAppService.ListAsync(AzureEnvVars.SubscriptionId, rg);
-
-				foreach (var x in r.Value)
-				{
-					LogicApps.Add(new KeyValuePair<string, string>(rg, x.Name));
-				}
-			}
-		}
-
-		async System.Threading.Tasks.Task ExtractLogicApps(string rgName, string logicAppName, bool failedOnly=false, bool export = true, DateTime? startDateTime=null, DateTime? endDateTime=null)
+		public async System.Threading.Tasks.Task ExtractLogicApps(string rgName, string logicAppName, bool failedOnly=false, bool export = true, DateTime? startDateTime=null, DateTime? endDateTime=null)
 		{
             Consoler.Information($"*** Extract {logicAppName} ***");
 			var runs = await Client.LogicAppService.WorkflowRunListAsync(AzureEnvVars.SubscriptionId, rgName, logicAppName,startTimeBegin:startDateTime, startTimeEnd:endDateTime);
@@ -122,9 +118,9 @@ namespace Auxilium.Core.LogicApps
 
                 if (failedOnly)
                 {
-					workflowRunValues = target.Value.Where(x => x.Properties.Status == "Failed").ToList();
-
-				}
+                    workflowRunValues = target.Value.Where(x => x.Properties.Status == "Failed").ToList();
+                    Consoler.Information($"filtering {target.Value.Count} for failed {workflowRunValues.Count}");
+                }
 
                 foreach (var value in workflowRunValues.Select(x => x.Name).Distinct())
 				{
@@ -149,7 +145,7 @@ namespace Auxilium.Core.LogicApps
 
                     };
 
-                    if (!Data.Any(x => x.RunId == extract.ActionName && x.ActionName == extract.ActionName))
+                    if (!Data.Any(x => x.RunId == extract.RunId && x.ActionName == extract.ActionName))
                     {
                         Data.Add(extract);
                         if (export)
@@ -192,10 +188,6 @@ namespace Auxilium.Core.LogicApps
             public string Type { get; set; }
         }
 
-        public class Parameters
-        {
-        }
-
         public class PathTemplate
         {
 
@@ -234,7 +226,6 @@ namespace Auxilium.Core.LogicApps
 
         public class Payload
         {
-
             [JsonProperty("api")]
             public Api Api { get; set; }
 
@@ -250,7 +241,5 @@ namespace Auxilium.Core.LogicApps
             [JsonProperty("body")]
             public Body Body { get; set; }
         }
-
-
     }
 }
