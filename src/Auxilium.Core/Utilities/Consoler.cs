@@ -9,39 +9,40 @@ namespace Auxilium.Core.Utilities
 
 	public static class Consoler
     {
-        public const string Breaker = "---------------------------------------------";
-		public static void ShowHeader(string text, string about = null)
+        public const string BreakerLine = "---------------------------------------------";
+		public static void Message(string header, string text = null)
 		{
             var col = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.DarkCyan;
-			Console.WriteLine(Breaker);
-			Console.WriteLine(Breaker);
-			Console.WriteLine("");
-			Console.WriteLine(text);
-			Console.ForegroundColor = ConsoleColor.White;
-			Console.WriteLine("");
+			Consoler.Breaker();
+            Console.ForegroundColor = ConsoleColor.White;
+			Consoler.Write(header);
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
 
-			if (!string.IsNullOrEmpty(about))
+			if (!string.IsNullOrEmpty(text))
 			{
-				Console.WriteLine("");
-				Console.WriteLine(about);
-				Console.WriteLine("");
-			}
+                Console.WriteLine(text);
+            }
 
-			Console.ForegroundColor = ConsoleColor.DarkCyan;
-			Console.WriteLine(Breaker);
-			Console.WriteLine(Breaker);
-			Console.WriteLine("");
-            Console.ForegroundColor = col;
+            Consoler.Breaker();
+			Console.ForegroundColor = col;
 		}
 
-		public static void Information(string text)
+        public static void Breaker()
+		{
+			var col = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            Console.WriteLine(BreakerLine);
+            Console.ForegroundColor = col;
+
+		}
+
+        public static void Information(string text)
         {
             var col = Console.ForegroundColor;
 			Console.ForegroundColor = ConsoleColor.Yellow;
-			Console.WriteLine(Breaker);
+			Console.WriteLine(BreakerLine);
 			Console.WriteLine(text);
-			Console.WriteLine(Breaker);
+			Console.WriteLine(BreakerLine);
             Console.ForegroundColor = col;
         }
 
@@ -117,7 +118,7 @@ namespace Auxilium.Core.Utilities
 		{
             var col = Console.ForegroundColor;
 			Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(Breaker);
+            Console.WriteLine(BreakerLine);
 			Console.WriteLine("Success");
             Console.ForegroundColor = col;
 			Pause(prompt);
@@ -127,7 +128,7 @@ namespace Auxilium.Core.Utilities
 		{
             var col = Console.ForegroundColor; 
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(Breaker);
+            Console.WriteLine(BreakerLine);
 			Console.WriteLine("Exception");
 			Console.ForegroundColor = ConsoleColor.DarkYellow;
 			Console.WriteLine("");

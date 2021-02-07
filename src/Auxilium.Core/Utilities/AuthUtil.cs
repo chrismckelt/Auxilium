@@ -7,6 +7,7 @@ namespace Auxilium.Core.Utilities
     {
         public static string GetTokenFromConsole()
         {
+            Consoler.TitleStart("Login GetTokenFromConsole");
             string ps = "$(az account get-access-token --query 'accessToken' -o tsv)";
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.FileName = @"powershell.exe";
@@ -24,10 +25,9 @@ namespace Auxilium.Core.Utilities
             if (!string.IsNullOrEmpty(output))
             {
                 string trim = output.Trim();
-                Console.WriteLine("------------------");
                 Console.WriteLine("TOKEN");
-                Console.WriteLine("------------------");
                 Console.WriteLine(trim);
+                Consoler.TitleEnd("Login GetTokenFromConsole");
                 return trim;
             }
 

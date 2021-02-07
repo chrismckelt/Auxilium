@@ -40,10 +40,17 @@ namespace Auxilium.Host
 
         private static async Task Run(string[] args)
         {
+            DateTime? startDate = null;
+            if (args.Any())
+            {
+                startDate = DateTime.Parse(args[0]);
+            }
+
             _extractor = new Extractor();
             _extractor.Data = LoadDataFromDisk();
-            var max = _extractor.Data.Select(x => x.StartTimeUtc).Max();
-            await _extractor.Run(max);
+            //if (!startDate.HasValue) startDate = _extractor.Data.Select(x => x.StartTimeUtc).Max();
+
+            await _extractor.Run(startDate);
             await  Export();
         }
         private static List<LogicAppExtract> LoadDataFromDisk()

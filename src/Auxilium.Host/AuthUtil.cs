@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Diagnostics;
+using Auxilium.Core.Utilities;
 
 namespace Auxilium.Host
 {
     public static class AuthUtil
     {
-        public static void SetAuthToken(string token)
-        {
-           Environment.SetEnvironmentVariable("azure-token", token, EnvironmentVariableTarget.User);
-           
-        }
         public static string GetTokenFromConsole()
         {
             string ps = "$(az account get-access-token --query 'accessToken' -o tsv)";
@@ -29,10 +25,9 @@ namespace Auxilium.Host
             if (!string.IsNullOrEmpty(output))
             {
                 string trim = output.Trim();
-                Console.WriteLine("------------------");
-                Console.WriteLine("TOKEN");
-                Console.WriteLine("------------------");
-                Console.WriteLine(trim);
+                Consoler.Breaker();
+                Consoler.Message("TOKEN", trim);
+                Consoler.Breaker();
                 return trim;
             }
 
