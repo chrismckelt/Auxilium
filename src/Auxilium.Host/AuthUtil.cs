@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Auxilium.Core.Utilities;
 
 namespace Auxilium.Host
@@ -8,10 +9,20 @@ namespace Auxilium.Host
     {
         public static string GetTokenFromConsole()
         {
-            string ps = "$(az account get-access-token --query 'accessToken' -o tsv)";
+            string cmd = "$(az account get-access-token --query 'accessToken' -o tsv)";
             ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = @"powershell.exe";
-            startInfo.Arguments = $@"-Command echo {ps}";
+            bool isLinux = RuntimeInformation
+                .IsOSPlatform(OSPlatform.Linux);
+            if (isLinux)
+            {
+                startInfo.FileName = @"/bin/bash";
+                startInfo.Arguments = $"-c \"echo {cmd}\"";
+            }
+            else
+            {
+                startInfo.FileName = @"powershell.exe";
+                startInfo.Arguments = $@"-Command echo {cmd}";
+            }
             startInfo.RedirectStandardOutput = true;
             startInfo.RedirectStandardError = true;
             startInfo.UseShellExecute = false;

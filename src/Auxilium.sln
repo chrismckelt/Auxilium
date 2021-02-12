@@ -14,6 +14,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Auxilium.Core", "Auxilium.C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Auxilium.Core.Tests", "Auxilium.Core.Tests\Auxilium.Core.Tests.csproj", "{CDA95A9C-CCD2-4FC7-83EC-BBFFA618BB4C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Auxilium.FunctionApp", "Auxilium.FunctionApp\Auxilium.FunctionApp.csproj", "{9A729A2C-64CD-485E-BA74-08B2792A083F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{CDA95A9C-CCD2-4FC7-83EC-BBFFA618BB4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CDA95A9C-CCD2-4FC7-83EC-BBFFA618BB4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CDA95A9C-CCD2-4FC7-83EC-BBFFA618BB4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9A729A2C-64CD-485E-BA74-08B2792A083F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A729A2C-64CD-485E-BA74-08B2792A083F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A729A2C-64CD-485E-BA74-08B2792A083F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A729A2C-64CD-485E-BA74-08B2792A083F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
