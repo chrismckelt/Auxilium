@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Auxilium.Core.Dtos;
 using Auxilium.Core.Interfaces;
@@ -18,6 +19,11 @@ namespace Auxilium.Core.Services
 		public async Task SaveTenantAsync(IList<AzureTenantDto> tenants)
 		{
 			await _tenantRepository.UpsertItemsAsync(tenants);
+		}
+
+		public async Task<IEnumerable<AzureTenantDto>> GetTenantsAsync()
+		{
+			return await _tenantRepository.GetItemsAsync<AzureTenantDto>(null, null);
 		}
 	}
 }

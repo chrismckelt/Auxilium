@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Auxilium.Core.Interfaces;
+using AzureFunctions.Extensions.Swashbuckle.Attribute;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -12,26 +14,28 @@ using Newtonsoft.Json;
 
 namespace Auxilium.FunctionApp
 {
-	public static class GetTenants
+	public class GetTenants
 	{
+		private readonly ITenantService _tenantService;
+
+		public GetTenants(ITenantService tenantService)
+		{
+			_tenantService = tenantService ?? throw new ArgumentNullException(nameof(tenantService));
+		}
+		
 		[ApiConventionMethod(typeof(DefaultApiConventions), nameof(DefaultApiConventions.Get))]
 		[FunctionName("GetTenantsAsync")]
-		public static async Task<IActionResult> RunAsync(
+		[QueryStringParameter("domain", "this is name", DataType = typeof(string), Required = false)]
+		public async Task<IActionResult> RunAsync(
 			[HttpTrigger(AuthorizationLevel.Function, "get", Route = null)]
 			HttpRequest req, ILogger log)
 		{
 			log.LogInformation("C# HTTP trigger function processed a request.");
+			string name = req.Query["domain"];
 
-			string name = req.Query["name"];
+			var result = await _tenantService.GetTenantsAsync();
 
-			string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-			dynamic data = JsonConvert.DeserializeObject(requestBody);
-			name = name ?? data?.name;
-
-			return name != null
-				? (ActionResult) new OkObjectResult($"Hello, {name}")
-				: new BadRequestObjectResult("Please pass a name on the query string or in the request body");
-			
+			return new OkObjectResult(result);
 		}
 	}
 }

@@ -43,14 +43,14 @@ namespace Auxilium.FunctionApp
 			var dtos = s.Value.Select(x => new AzureTenantDto
 			{
 				Domains = x.Domains,
-				TenantId = x.TenantId,
-				Id = x.Id,
+				TenantId = x.Id,
+				Id = x.TenantId,
 				Name = x.DisplayName,
 				PartitionKey = "/tennantid",
 				DisplayName = x.DisplayName
 			}).ToList();
 
-			// await _tenantService.SaveTenantAsync(dtos);
+			await _tenantService.SaveTenantAsync(dtos);
 		}
 
 		public static ApiClient Client { get; set; }

@@ -9,8 +9,8 @@ namespace Auxilium.Infrastructure
 	{
 		private static readonly CosmosContainerConfig _tenantContainerConfig = new CosmosContainerConfig
 		{
-			ContainerName = "tenants",
-			PartitionKey = "tenantid"
+			ContainerName = "Tenants",
+			PartitionKey = "tenantId"
 		};
 		
 		public TenantRepository(IOptions<CosmosConfig> config, ILogger<CosmosDbRepository<AzureTenantDto>> logger) : base(config, logger, _tenantContainerConfig)
