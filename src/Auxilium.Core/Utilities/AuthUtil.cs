@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Auxilium.Core.Utilities
 {
@@ -7,11 +8,20 @@ namespace Auxilium.Core.Utilities
     {
         public static string GetTokenFromConsole()
         {
-            Consoler.TitleStart("Login GetTokenFromConsole");
-            string ps = "$(az account get-access-token --query 'accessToken' -o tsv)";
+            string cmd = "$(az account get-access-token --query 'accessToken' -o tsv)";
             ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.FileName = @"powershell.exe";
-            startInfo.Arguments = $@"-Command echo {ps}";
+            bool isLinux = RuntimeInformation
+                .IsOSPlatform(OSPlatform.Linux);
+            if (isLinux)
+            {
+                startInfo.FileName = @"/bin/bash";
+                startInfo.Arguments = $"-c \"echo {cmd}\"";
+            }
+            else
+            {
+                startInfo.FileName = @"powershell.exe";
+                startInfo.Arguments = $@"-Command echo {cmd}";
+            }
             startInfo.RedirectStandardOutput = true;
             startInfo.RedirectStandardError = true;
             startInfo.UseShellExecute = false;
@@ -25,9 +35,9 @@ namespace Auxilium.Core.Utilities
             if (!string.IsNullOrEmpty(output))
             {
                 string trim = output.Trim();
-                Console.WriteLine("TOKEN");
-                Console.WriteLine(trim);
-                Consoler.TitleEnd("Login GetTokenFromConsole");
+                Consoler.Breaker();
+                Consoler.Message("TOKEN", trim);
+                Consoler.Breaker();
                 return trim;
             }
 
@@ -35,7 +45,5 @@ namespace Auxilium.Core.Utilities
 
             throw new ApplicationException(errors);
         }
-
-
     }
 }
