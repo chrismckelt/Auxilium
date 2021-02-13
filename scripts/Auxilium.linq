@@ -691,10 +691,10 @@ async System.Threading.Tasks.Task Main()
 	// extract logic app state for chosen subscription
 	_extractor = new Extractor();
 	_extractor.Data = LoadDataFromDisk();
-	//await _extractor.Run(DateTime.UtcNow.Date.AddDays(-1));
-	//await Export(); // export to disk ExportFolder
+	//await _extractor.Run(DateTime.UtcNow.Date.AddHours(-40));
+	await Export(); // export to disk ExportFolder
 	
-	// ANALYSE
+	// ANALYSE.
 	// load subscription / resource groups / logic apps and display
 	//await Load();
 	
@@ -719,15 +719,16 @@ async System.Threading.Tasks.Task Main()
 	.Dump("failed");
 		
 	// REPLAY FAILED
-	//await ReplayFailed(failed);
+	//await ReplayFailed(failed.ToList());
 }
 
 async Task ReplayFailed(IList<LogicAppExtract> failed)
 {
-	Consoler.ShowHeader("WARNING - Replaying Logic Apps - continue?");
+	Consoler.Message("WARNING - Replaying Logic Apps - continue?");
 	Consoler.Information("Hit Y for YES to execute replay");
-	var res = Console.ReadLine();
-	if (res.ToUpperInvariant() == "Y")
+	//var res = Console.ReadLine();
+	bool doit = true;// (res.ToUpperInvariant() == "Y")
+	if (doit)
 	{
 		Consoler.Write("REPLAYING");
 		foreach (var f in failed)
@@ -756,7 +757,6 @@ async Task Load()
 
 private static List<LogicAppExtract> LoadDataFromDisk()
 {
-	var data = new List<LogicAppExtract>();
 	foreach (var f in Directory.GetFiles(ExportFolder, "*.json"))
 	{
 		var content = System.IO.File.ReadAllText(f);
@@ -765,15 +765,15 @@ private static List<LogicAppExtract> LoadDataFromDisk()
 			var list = JsonConvert.DeserializeObject<LogicAppExtract[]>(content);
 			foreach (var d in list)
 			{
-				if (!data.Any(x => x.RunId == d.ActionName && x.ActionName == d.ActionName))
+				if (!_extractor.Data.Any(x => x.RunId == d.RunId && x.ActionName == d.ActionName))
 				{
-					data.Add(d);
+					_extractor.Data.Add(d);
 				}
 			}
 		}
 	}
 
-	return data;
+	return _extractor.Data;
 }
 
 private static async Task Export()
@@ -809,7 +809,7 @@ IList<Extractor.Poco> LoadFailedFromFile()
 	using (var csv = new CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture))
 	{
 		//csv.Configuration.PrepareHeaderForMatch = (string header, int index) => header.ToLower();
-		csv.Configuration.HasHeaderRecord = true;
+		//csv.Configuration.HasHeaderRecord = true;
 		csv.Read();
 		csv.ReadHeader();
 		while (csv.Read())
