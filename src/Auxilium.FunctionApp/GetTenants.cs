@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using AzureFunctions.Extensions.Swashbuckle.Attribute;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
@@ -16,8 +17,9 @@ namespace Auxilium.FunctionApp
 	{
 		[ApiConventionMethod(typeof(DefaultApiConventions), nameof(DefaultApiConventions.Get))]
 		[FunctionName("GetTenantsAsync")]
+		[QueryStringParameter("name", "this is name", DataType = typeof(string), Required = false)]
 		public static async Task<IActionResult> RunAsync(
-			[HttpTrigger(AuthorizationLevel.Function, "get", Route = null)]
+			[HttpTrigger(AuthorizationLevel.Function, "get", "put", Route = null)]
 			HttpRequest req, ILogger log)
 		{
 			log.LogInformation("C# HTTP trigger function processed a request.");
