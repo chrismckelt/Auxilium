@@ -3,7 +3,7 @@ using Auxilium.Core.LogAnalytics;
 using Auxilium.Core.LogicApps;
 using Auxilium.Core.ResourceGroups;
 using Auxilium.Core.Resources;
-using Auxilium.Core.Subscriptions;
+using Auxilium.Core.Tenants;
 using Auxilium.Core.Workspaces;
 
 namespace Auxilium.Core
@@ -14,7 +14,7 @@ namespace Auxilium.Core
         IAzure AzureService { get; }
         string Token { get; }
         string TenantId { get; }
-        ISubscriptionService SubscriptionService { get; set; }
+        ITenantService TenantService { get; set; }
         IResourceGroupService ResourceGroupService { get; set; }
         IResourceService ResourceService { get; set; }
         ILogicAppService LogicAppService { get; set; }
