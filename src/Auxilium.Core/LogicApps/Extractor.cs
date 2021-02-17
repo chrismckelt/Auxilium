@@ -31,7 +31,7 @@ namespace Auxilium.Core.LogicApps
            
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
           
-			await ExtractAll(true, startDateTime.GetValueOrDefault(DateTime.UtcNow.AddDays(-1).Date).AddHours(-1), DateTime.UtcNow);
+			await ExtractAll(true, startDateTime.GetValueOrDefault(DateTime.UtcNow.AddDays(-3).Date).AddHours(-1), DateTime.UtcNow);
             stopwatch.Stop();
             Console.WriteLine($"Total Minutes: {stopwatch.Elapsed.TotalMinutes}");
 		}
