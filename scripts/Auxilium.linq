@@ -16,7 +16,6 @@
   <Namespace>Auxilium.Core.ResourceGroups</Namespace>
   <Namespace>Auxilium.Core.Resources</Namespace>
   <Namespace>Auxilium.Core.Storage</Namespace>
-  <Namespace>Auxilium.Core.Subscriptions</Namespace>
   <Namespace>Auxilium.Core.Utilities</Namespace>
   <Namespace>Auxilium.Core.Workspaces</Namespace>
   <Namespace>CsvHelper</Namespace>
@@ -691,7 +690,7 @@ async System.Threading.Tasks.Task Main()
 	// extract logic app state for chosen subscription
 	_extractor = new Extractor();
 	_extractor.Data = LoadDataFromDisk();
-	//await _extractor.Run(DateTime.UtcNow.Date.AddHours(-40));
+	await _extractor.Run(DateTime.UtcNow.Date.AddHours(-24));
 	await Export(); // export to disk ExportFolder
 	
 	// ANALYSE.
