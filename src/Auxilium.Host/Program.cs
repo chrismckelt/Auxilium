@@ -46,12 +46,17 @@ namespace Auxilium.Host
                 startDate = DateTime.Parse(args[0]);
             }
 
-            _extractor = new Extractor();
-            _extractor.Data = LoadDataFromDisk();
-            //if (!startDate.HasValue) startDate = _extractor.Data.Select(x => x.StartTimeUtc).Max();
+            //_extractor = new Extractor();
+            //_extractor.Data = LoadDataFromDisk();
+            ////if (!startDate.HasValue) startDate = _extractor.Data.Select(x => x.StartTimeUtc).Max();
 
-            await _extractor.Run(startDate);
-            await  Export();
+            //await _extractor.Run(startDate);
+            //await  Export();
+            string t = AuthUtil.GetTokenFromConsole();
+            Client = new ApiClient(AzureEnvVars.TenantId, AzureEnvVars.SubscriptionId,t);
+
+            var s = await Client.TenantService.ListTenantsAsync();
+            Console.Write(s.Value.Count.ToString());
         }
         private static List<LogicAppExtract> LoadDataFromDisk()
         {

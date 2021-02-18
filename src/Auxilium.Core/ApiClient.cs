@@ -12,7 +12,7 @@ using Auxilium.Core.LogicApps;
 using Auxilium.Core.ResourceGroups;
 using Auxilium.Core.Resources;
 using Auxilium.Core.Storage;
-using Auxilium.Core.Subscriptions;
+using Auxilium.Core.Tenants;
 using Auxilium.Core.Workspaces;
 using Azure.Core;
 using Azure.Identity;
@@ -32,7 +32,7 @@ namespace Auxilium.Core
         public string Token { get; private set; }
         public string TenantId { get; private set; }
 
-        public ISubscriptionService SubscriptionService { get; set; } = new SubscriptionService();
+        public ITenantService TenantService { get; set; } = new TenantService();
         public IResourceGroupService ResourceGroupService { get; set; } = new ResourceGroupService();
         public IResourceService ResourceService { get; set; } = new ResourceService();
         public ILogicAppService LogicAppService { get; set; } = new LogicAppService();
@@ -126,7 +126,7 @@ namespace Auxilium.Core
         public void SetAccessToken(string token)
         {
             Token = token;
-            SubscriptionService = new SubscriptionService(Token);
+            TenantService = new TenantService(Token);
             ResourceGroupService = new ResourceGroupService(Token);
             ResourceService = new ResourceService(Token);
             LogicAppService = new LogicAppService(Token);

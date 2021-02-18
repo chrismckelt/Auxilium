@@ -5,11 +5,11 @@ using System.Threading.Tasks;
 using Auxilium.Core.Utilities;
 using Newtonsoft.Json.Linq;
 
-namespace Auxilium.Core.Subscriptions
+namespace Auxilium.Core.Tenants
 {
-    public class SubscriptionService : ServiceBase, ISubscriptionService
+    public class TenantService : ServiceBase, ITenantService
     {
-        public SubscriptionService(string token = null) : base(token)
+        public TenantService(string token = null) : base(token)
         {
         }
 
