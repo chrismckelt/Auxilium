@@ -19,7 +19,7 @@ namespace Auxilium.FunctionApp
 			[HttpTrigger(AuthorizationLevel.Function, "get", "put", Route = null)]
 			HttpRequest req, ILogger log)
 		{
-			log.LogInformation("C# HTTP trigger function processed a request");
+			log.LogInformation("TestHttpSwagger started");
 
 			string name = req.Query["name"];
 
@@ -28,8 +28,8 @@ namespace Auxilium.FunctionApp
 			name ??= data?.name;
 
 			return name != null
-				? (ActionResult) new OkObjectResult($"Hello, {name}")
-				: new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+				? (ActionResult) new OkObjectResult($"SWAGGER OK, {name}")
+				: new BadRequestObjectResult("BAD data - no name in query string");
 			
 		}
 	}

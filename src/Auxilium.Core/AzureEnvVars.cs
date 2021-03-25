@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Auxilium.Core.Utilities;
 
 namespace Auxilium.Core
 {
@@ -34,8 +35,35 @@ namespace Auxilium.Core
             res = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Machine);
             if (!string.IsNullOrEmpty(res)) return res;
 
+
+            Consoler.Warn("Env var not found", name);
+
             return null;
         }
+
+
+        public static void Print()
+        {
+            Console.WriteLine(TryTargets(AzureEnvVars.TenantId));
+
+            AzureEnvVars.TenantId.Dump("TenantId");
+            AzureEnvVars.SubscriptionId.Dump("SubscriptionId");
+            AzureEnvVars.SubscriptionName.Dump("SubscriptionName");
+            AzureEnvVars.ClientId.Dump("ClientId");
+            AzureEnvVars.ClientSecret.Dump("ClientSecret");
+            AzureEnvVars.Username.Dump("Username");
+            AzureEnvVars.Password.Dump("Password");
+
+            AzureEnvVars.WorkspaceId.Dump("WorkspaceId");
+            AzureEnvVars.WorkspaceSharedKey.Dump("WorkspaceSharedKey");
+
+          
+        
+
+        }
+
+
+
         /*
          *
          *

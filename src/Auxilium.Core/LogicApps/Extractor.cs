@@ -20,31 +20,41 @@ namespace Auxilium.Core.LogicApps
         public IPagedCollection<ISubscription> Subscriptions { get; set; }
 		public IPagedCollection<IResourceGroup> ResourceGroups { get; set; }
 		public IList<KeyValuePair<string, string>> LogicApps = new List<KeyValuePair<string, string>>();
+        private bool _hasAuthenticated = false;
+        private string _logicAppFilterName = null;
 
-        public async Task Run(DateTime? startDateTime = null)
+        public async Task Run(DateTime? startDateTime = null, DateTime? endDateTime = null, string logicAppNameFilter = null)
         {
-            //Token = ApiClient.GetToken();
-            Token = AuthUtil.GetTokenFromConsole();
-            Client = new ApiClient(AzureEnvVars.TenantId, AzureEnvVars.SubscriptionId, Token);
+            if (!string.IsNullOrEmpty(logicAppNameFilter)) _logicAppFilterName = logicAppNameFilter;
+            Authenticate();
 
-            await Load();
-           
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
           
-			await ExtractAll(true, startDateTime.GetValueOrDefault(DateTime.UtcNow.AddDays(-3).Date).AddHours(-1), DateTime.UtcNow);
+			await ExtractAll(false, startDateTime.GetValueOrDefault(DateTime.UtcNow.AddDays(-1).Date).AddHours(-1), endDateTime.GetValueOrDefault(DateTime.UtcNow));
             stopwatch.Stop();
             Console.WriteLine($"Total Minutes: {stopwatch.Elapsed.TotalMinutes}");
 		}
 
-		async Task Load()
+        public void Authenticate(string token = null)
+        {
+            if (_hasAuthenticated) return;
+            Consoler.TitleStart("Authenticating...");
+            Token = !string.IsNullOrEmpty(token) ? token : AuthUtil.GetTokenFromConsole();
+            Client = new ApiClient(AzureEnvVars.TenantId, AzureEnvVars.SubscriptionId, Token);
+            _hasAuthenticated = true;
+            Consoler.TitleEnd("Authenticating...");
+        }
+
+        public async Task Load()
 		{
+            Authenticate();
             Subscriptions = await Client.AzureService.Subscriptions.ListAsync();
             Subscriptions.Dump("Subscriptions");
             ResourceGroups = await Client.AzureService.ResourceGroups.ListAsync(true);
             ResourceGroups.Dump("Resource Groups");
-			await GetLogicApps();
+			await LoadLogicApps();
 		}
-        public async System.Threading.Tasks.Task GetLogicApps()
+        private async System.Threading.Tasks.Task LoadLogicApps()
         {
             foreach (var rg in ResourceGroups.Select(x => x.Name).Distinct())
             {
@@ -52,30 +62,37 @@ namespace Auxilium.Core.LogicApps
 
                 foreach (var x in r.Value)
                 {
-                    LogicApps.Add(new KeyValuePair<string, string>(rg, x.Name));
+                    if (!string.IsNullOrEmpty(_logicAppFilterName) && _logicAppFilterName == x.Name)
+                    {
+                        LogicApps.Add(new KeyValuePair<string, string>(rg, x.Name));
+                    }
+                    else
+                    {
+                        LogicApps.Add(new KeyValuePair<string, string>(rg, x.Name));
+                    }
                 }
             }
         }
 
-        async Task ReplayFailed(IList<Poco> failed)
+        public async Task ReplayFailed(IList<Poco> failed)
 		{
 			foreach (var f in failed)
 			{
 				try
 				{
-					await ExtractLogicApps(f.ResourceGroup, f.LogicAppName, false, true);
+					await ExtractLogicApp(f.ResourceGroup, f.LogicAppName, false, true);
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine(ex.Message);
 					Token = ApiClient.GetToken();
 					Client = new ApiClient(AzureEnvVars.TenantId, AzureEnvVars.SubscriptionId, Token);
-					await ExtractLogicApps(f.ResourceGroup, f.LogicAppName, false, true);
+					await ExtractLogicApp(f.ResourceGroup, f.LogicAppName, false, true);
 				}
 			}
 		}
 
-		async Task Replay(IEnumerable<string> failedRunIds)
+		public async Task Replay(IEnumerable<string> failedRunIds)
 		{
 			foreach (var f in failedRunIds)
 			{
@@ -89,31 +106,39 @@ namespace Auxilium.Core.LogicApps
 		}
 
 		public async System.Threading.Tasks.Task ExtractAll(bool failedOnly = false, DateTime? startDateTime=null, DateTime? endDateTime=null, bool export = true)
-		{
-            foreach (var x in LogicApps)
+        {
+            var list = LogicApps;
+            if (!string.IsNullOrEmpty(_logicAppFilterName))
+            {
+                list = LogicApps.Where(x => x.Value == _logicAppFilterName).ToList();
+            }
+
+            foreach (var x in list)
 			{
 				try
 				{
-					await ExtractLogicApps(x.Key, x.Value, failedOnly, export, startDateTime:startDateTime,endDateTime:endDateTime);
+					await ExtractLogicApp(x.Key, x.Value, failedOnly, export, startDateTime:startDateTime,endDateTime:endDateTime);
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine(ex.Message);
                     Token = ApiClient.GetToken();
                     Client = new ApiClient(AzureEnvVars.TenantId, AzureEnvVars.SubscriptionId, Token);
-				}
+
+                    await ExtractLogicApp(x.Key, x.Value, failedOnly, export, startDateTime: startDateTime, endDateTime: endDateTime);
+                }
 			}
 		}
 
-		public async System.Threading.Tasks.Task ExtractLogicApps(string rgName, string logicAppName, bool failedOnly=false, bool export = true, DateTime? startDateTime=null, DateTime? endDateTime=null)
+		public async System.Threading.Tasks.Task<string> ExtractLogicApp(string resourceGroupName, string logicAppName, bool failedOnly=false, bool export = true, DateTime? startDateTime=null, DateTime? endDateTime=null)
 		{
             Consoler.Information($"*** Extract {logicAppName} ***");
-			var runs = await Client.LogicAppService.WorkflowRunListAsync(AzureEnvVars.SubscriptionId, rgName, logicAppName,startTimeBegin:startDateTime, startTimeEnd:endDateTime);
+			var runs = await Client.LogicAppService.WorkflowRunListAsync(AzureEnvVars.SubscriptionId, resourceGroupName, logicAppName,startTimeBegin:startDateTime, startTimeEnd:endDateTime);
 
 			foreach (var r in runs.Value.Take(500).Select(x => x.Name).Distinct())
 			{
 				//string runid = "08586013893585485487155006807CU03";
-				var target = await Client.LogicAppService.WorkflowRunGetAsync(AzureEnvVars.SubscriptionId, rgName, logicAppName, r);
+				var target = await Client.LogicAppService.WorkflowRunGetAsync(AzureEnvVars.SubscriptionId, resourceGroupName, logicAppName, r);
 				IList<LogicAppWorkflowRunValue> workflowRunValues = target.Value;
 
                 if (failedOnly)
@@ -126,13 +151,13 @@ namespace Auxilium.Core.LogicApps
 
                 foreach (var value in workflowRunValues.Select(x => x.Name).Distinct())
 				{
-					var act = await Client.LogicAppService.WorkflowRunGetActionAsync(AzureEnvVars.SubscriptionId, rgName,
+					var act = await Client.LogicAppService.WorkflowRunGetActionAsync(AzureEnvVars.SubscriptionId, resourceGroupName,
 						logicAppName, r, value);
 
                     var extract = new LogicAppExtract
                     {
                         LogicAppName = logicAppName,
-                        ResourceGroup = rgName,
+                        ResourceGroup = resourceGroupName,
                         Correlation = act.Correlation,
                         RunId = act.RunId,
                         ActionName = act.ActionName,
@@ -158,6 +183,8 @@ namespace Auxilium.Core.LogicApps
                     }
                 }
 			}
+
+            return JsonConvert.SerializeObject(Data);
         }
 
         async Task Search()

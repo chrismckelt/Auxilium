@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 
 namespace Auxilium.Core.Utilities
@@ -10,17 +12,21 @@ namespace Auxilium.Core.Utilities
 	public static class Consoler
     {
         public const string BreakerLine = "---------------------------------------------";
-		public static void Message(string header, string text = null)
+        public static ILogger Logger { get; set; } = NullLogger.Instance;
+
+        public static void Message(string header, string text = null)
 		{
             var col = Console.ForegroundColor;
 			Consoler.Breaker();
             Console.ForegroundColor = ConsoleColor.White;
 			Consoler.Write(header);
-            Console.ForegroundColor = ConsoleColor.DarkGreen;
+            Logger.LogInformation(header);
+
+			Console.ForegroundColor = ConsoleColor.DarkGreen;
 
 			if (!string.IsNullOrEmpty(text))
 			{
-                Console.WriteLine(text);
+                Consoler.Write(text);
             }
 
             Consoler.Breaker();
@@ -42,6 +48,7 @@ namespace Auxilium.Core.Utilities
 			Console.ForegroundColor = ConsoleColor.Yellow;
 			Console.WriteLine(BreakerLine);
 			Console.WriteLine(text);
+            Logger.LogInformation(text);
 			Console.WriteLine(BreakerLine);
             Console.ForegroundColor = col;
         }
@@ -51,7 +58,11 @@ namespace Auxilium.Core.Utilities
             var col = Console.ForegroundColor;
 			Console.ForegroundColor = ConsoleColor.White;
 			Console.WriteLine("---- start ----");
-			if (!string.IsNullOrEmpty(text))Console.WriteLine(text);
+            if (!string.IsNullOrEmpty(text))
+            {
+                Console.WriteLine(text);
+				Logger.LogInformation(text);
+            }
             Console.ForegroundColor = col;
 		}
 
@@ -59,7 +70,11 @@ namespace Auxilium.Core.Utilities
 		{
             var col = Console.ForegroundColor;
 			Console.ForegroundColor = ConsoleColor.White;
-            if (!string.IsNullOrEmpty(text)) Console.WriteLine(text);
+            if (!string.IsNullOrEmpty(text))
+            {
+                Console.WriteLine(text);
+                Logger.LogInformation(text);
+			}
 			Console.WriteLine("---- end ----");
             Console.ForegroundColor = col;
 		}
@@ -70,12 +85,14 @@ namespace Auxilium.Core.Utilities
             {
                 Console.WriteLine(text);
                 Trace.WriteLine(text);
+                Logger.LogInformation(text);
 			}
             else
             {
 				Console.Write(text);
 				Trace.Write(text);
-            }
+                Logger.LogInformation(text);
+			}
         }
 
 		public static void Write(string format, object arg)
@@ -91,6 +108,7 @@ namespace Auxilium.Core.Utilities
 			Console.ForegroundColor = ConsoleColor.DarkYellow;
 			Console.WriteLine("-- WARN --");
 			Console.WriteLine(text);
+			Logger.LogWarning(text);
 			if (!string.IsNullOrEmpty(message)) Write(message);
 		}
 
@@ -100,6 +118,7 @@ namespace Auxilium.Core.Utilities
 			Console.ForegroundColor = ConsoleColor.DarkRed;
 			Console.WriteLine("-- ERROR --");
 			Console.WriteLine(text);
+			Logger.LogError(text);
             Console.ForegroundColor = col;
 		}
 
@@ -109,9 +128,10 @@ namespace Auxilium.Core.Utilities
 			Console.ForegroundColor = ConsoleColor.DarkRed;
 			Console.WriteLine("-- ERROR --");
 			Console.WriteLine(text);
-			Console.WriteLine("-- EXCEPTION --");
+            Console.WriteLine("-- EXCEPTION --");
 			Console.WriteLine(ex.ToString());
-            Console.ForegroundColor = col;
+            Logger.LogError(text, ex);
+			Console.ForegroundColor = col;
 		}
 
 		public static void Success(bool prompt = false)
@@ -120,7 +140,8 @@ namespace Auxilium.Core.Utilities
 			Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine(BreakerLine);
 			Console.WriteLine("Success");
-            Console.ForegroundColor = col;
+            Logger.LogInformation("Success");
+			Console.ForegroundColor = col;
 			Pause(prompt);
 		}
 
@@ -136,6 +157,7 @@ namespace Auxilium.Core.Utilities
 			Console.WriteLine("");
 			Console.ForegroundColor = ConsoleColor.Gray;
 			Console.WriteLine(e);
+			Logger.LogWarning(e.Message);
             Console.ForegroundColor = col;
 			Pause(prompt);
 		}

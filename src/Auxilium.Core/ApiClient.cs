@@ -13,6 +13,7 @@ using Auxilium.Core.ResourceGroups;
 using Auxilium.Core.Resources;
 using Auxilium.Core.Storage;
 using Auxilium.Core.Tenants;
+using Auxilium.Core.Utilities;
 using Auxilium.Core.Workspaces;
 using Azure.Core;
 using Azure.Identity;
@@ -92,16 +93,17 @@ namespace Auxilium.Core
 
         public static string GetToken()
         {
+            return AuthUtil.GetTokenFromConsole();
             https://yourazurecoach.com/2020/08/13/managed-identity-simplified-with-the-new-azure-net-sdks/
             var options = new DefaultAzureCredentialOptions
             {
-                ExcludeEnvironmentCredential = true,
+                ExcludeEnvironmentCredential = false,
                 ExcludeManagedIdentityCredential = false,
-                ExcludeSharedTokenCacheCredential = true,
+                ExcludeSharedTokenCacheCredential = false,
                 ExcludeVisualStudioCredential = true,
                 ExcludeVisualStudioCodeCredential = true,
                 ExcludeAzureCliCredential = false,
-                ExcludeInteractiveBrowserCredential = true
+                ExcludeInteractiveBrowserCredential = false
             };
             var credential = new DefaultAzureCredential(options);
             //var credential = new ChainedTokenCredential(new AzureCliCredential(), new ManagedIdentityCredential());
@@ -135,8 +137,6 @@ namespace Auxilium.Core
             Init();
         }
 
-
-         
         #region storage
 
         public async Task LogToStorageAccount(IEnumerable<LogicAppWorkflowRun> logicAppWorkflowRuns, string storageAccountConnectionString, string tableName)

@@ -77,29 +77,56 @@ namespace Auxilium.Core.LogAnalytics
 
             try
             {
-                HttpClient client = new HttpClient();
-
-                client.DefaultRequestHeaders.Add("Authorization", authSignature);
-                client.DefaultRequestHeaders.Add("Log-Type", logType);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("x-ms-date", dateTimeNow);
-                client.DefaultRequestHeaders.Add("time-generated-field", ""); // if we want to extend this in the future to support custom date fields from the entity etc.
-
-                HttpContent httpContent = new StringContent(json, Encoding.UTF8);
-                httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                HttpResponseMessage response = await client.PostAsync(new Uri(logUri), httpContent);
-                response.EnsureSuccessStatusCode();
-                string result = await response.Content.ReadAsStringAsync();
-                Trace.WriteLine("Log Analytics collection result: " + result);
+                await SendLog(json, logType, authSignature, dateTimeNow, logUri);
             }
             catch (Exception excep)
             {
                 Consoler.Error("API Post Exception", excep);
+                int breaker = 0;
+                bool success = false;
+                
+                while (!success && breaker < 10)
+                {
+                    try
+                    {
+                        System.Threading.Thread.Sleep(1000);
+                        await SendLog(json, logType, authSignature, dateTimeNow, logUri);
+                        success = true;
+                    }
+                    catch (Exception e)
+                    {
+                        Consoler.Error("API Post Exception 2", excep);
+                    }
+                    finally
+                    {
+                        breaker++;
+                    }
+                }
 
-                #if DEBUG
-                    throw;
-                #endif
+                if (!success)
+                {
+                    throw new ApplicationException("LogAnalyticsDataCollector failed over 10 times to record log", excep);
+                }
             }
+        }
+
+        private static async Task SendLog(string json, string logType, string authSignature, string dateTimeNow, string logUri)
+        {
+            HttpClient client = new HttpClient();
+
+            client.DefaultRequestHeaders.Add("Authorization", authSignature);
+            client.DefaultRequestHeaders.Add("Log-Type", logType);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.DefaultRequestHeaders.Add("x-ms-date", dateTimeNow);
+            client.DefaultRequestHeaders.Add("time-generated-field",
+                ""); // if we want to extend this in the future to support custom date fields from the entity etc.
+
+            HttpContent httpContent = new StringContent(json, Encoding.UTF8);
+            httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            HttpResponseMessage response = await client.PostAsync(new Uri(logUri), httpContent);
+            response.EnsureSuccessStatusCode();
+            string result = await response.Content.ReadAsStringAsync();
+            Trace.WriteLine($"Log Analytics collection result:  {result} {json}");
         }
 
 

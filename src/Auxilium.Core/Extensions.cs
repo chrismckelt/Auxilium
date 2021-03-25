@@ -16,7 +16,7 @@ namespace Auxilium.Core
             var content = JsonConvert.SerializeObject(obj, indent ? Formatting.Indented : Formatting.None,
                 new JsonSerializerSettings {NullValueHandling = NullValueHandling.Ignore});
 
-            Consoler.Information(content);
+            Consoler.Information($"{description} : {content}");
             return content;
         }
 

@@ -10,6 +10,7 @@
   <NuGetReference>Microsoft.Azure.Management.ResourceManager.Fluent</NuGetReference>
   <NuGetReference>Microsoft.Azure.OperationalInsights</NuGetReference>
   <NuGetReference>Microsoft.Azure.Services.AppAuthentication</NuGetReference>
+  <NuGetReference>Microsoft.Extensions.Logging.Abstractions</NuGetReference>
   <Namespace>Auxilium.Core</Namespace>
   <Namespace>Auxilium.Core.LogAnalytics</Namespace>
   <Namespace>Auxilium.Core.LogicApps</Namespace>
@@ -634,6 +635,8 @@
   <Namespace>Microsoft.Azure.OperationalInsights</Namespace>
   <Namespace>Microsoft.Azure.OperationalInsights.Models</Namespace>
   <Namespace>Microsoft.Azure.Services.AppAuthentication</Namespace>
+  <Namespace>Microsoft.Extensions.Logging</Namespace>
+  <Namespace>Microsoft.Extensions.Logging.Abstractions</Namespace>
   <Namespace>Microsoft.Identity.Core.Cache</Namespace>
   <Namespace>Microsoft.IdentityModel.Clients.ActiveDirectory</Namespace>
   <Namespace>Microsoft.IdentityModel.Clients.ActiveDirectory.Extensibility</Namespace>
@@ -668,6 +671,7 @@
   <Namespace>Newtonsoft.Json.Linq</Namespace>
   <Namespace>Newtonsoft.Json.Schema</Namespace>
   <Namespace>Newtonsoft.Json.Serialization</Namespace>
+  <Namespace>System.Net.Http</Namespace>
   <Namespace>System.Runtime.Serialization.Formatters</Namespace>
   <Namespace>System.Threading.Tasks</Namespace>
 </Query>
@@ -681,21 +685,48 @@ static readonly string SubscriptionId = AzureEnvVars.SubscriptionId;       // if
 const string ExportFolder = @"c:\temp\logic-app-extracts\";
 private static Extractor _extractor;
 
+private static readonly System.Net.Http.HttpClient client = new System.Net.Http.HttpClient() {
+Timeout = System.TimeSpan.FromMinutes(15)
+};
+
 async System.Threading.Tasks.Task Main()
 {
+		
 	Token = AuthUtil.GetTokenFromConsole();
 	Client = new ApiClient(TenantId, SubscriptionId, Token);
+	
+	var data = new ExtractLogicAppPayload();
+	data.Token = Token;
+	data.ResourceGroup ="gx-p-arg-pos-clickandcollect";
+	data.LogicAppName ="GX-Syd-P-ALA-POS-ClickAndCollect-Process-SalesOrdersUpdate-Magento";
+	data.StartDateTime =DateTime.UtcNow.AddMinutes(-1);
+	data.EndDateTime =DateTime.UtcNow;
+	data.FailedOnly = false;
+	data.Export = true;
+	var json = JsonConvert.SerializeObject(data);
 
+	using (var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
+	{
+		HttpResponseMessage result = await client.PostAsync("https://gxintegrationsupport.azurewebsites.net/api/ExtractLogicApp?code=lNTK9ScnqP95qYxta6UOP4ZD9W1DN3RwkY6LpHAogaloc0rzVwEcPg==", content);
+		result.EnsureSuccessStatusCode();
+		string returnValue = result.Content.ReadAsStringAsync().Result;
+		Console.Write(returnValue);
+	}
+
+	return;
+
+	// ANALYSE.
+	// load subscription / resource groups / logic apps and display
+	await Load();
+	return;
+
+	//return;
 	// EXTRACT
 	// extract logic app state for chosen subscription
 	_extractor = new Extractor();
-	_extractor.Data = LoadDataFromDisk();
-	await _extractor.Run(DateTime.UtcNow.Date.AddHours(-24));
-	await Export(); // export to disk ExportFolder
-	
-	// ANALYSE.
-	// load subscription / resource groups / logic apps and display
-	//await Load();
+	//_extractor.Data = LoadDataFromDisk();
+	//await _extractor.Run(DateTime.UtcNow.Date.AddHours(-12));
+	//await Export(); // export to disk ExportFolder
 	
 	// search failed and optionally replay
 	string search = "502085970";
@@ -712,13 +743,13 @@ async System.Threading.Tasks.Task Main()
 	runs.Dump("runs");
 
 	var failed = _extractor.Data
-	.Where(x => x.StartTimeUtc > DateTime.UtcNow.AddHours(-24))
+	.Where(x => x.StartTimeUtc > DateTime.UtcNow.AddHours(-4))
 	.Where(x => x.Status == "Failed")
 	.Distinct()
 	.Dump("failed");
 		
 	// REPLAY FAILED
-	//await ReplayFailed(failed.ToList());
+	await ReplayFailed(failed.ToList());
 }
 
 async Task ReplayFailed(IList<LogicAppExtract> failed)
@@ -734,6 +765,7 @@ async Task ReplayFailed(IList<LogicAppExtract> failed)
 		{
 			Consoler.Write($"Run {f}");
 			await Resubmit(f);
+			Thread.Sleep(3000);
 		}
 	}
 }
@@ -800,15 +832,13 @@ private static async Task Export()
 	}
 }
 
-IList<Extractor.Poco> LoadFailedFromFile()
+async Task ReplayFailedFromExportFile()
 {
-	var list = new List<Extractor.Poco>();
+	var failedExport = new List<Extractor.Poco>();
 	string filePath = @"c:\temp\query_data.csv";
 	using (var reader = new StreamReader(filePath))
 	using (var csv = new CsvReader(reader, System.Globalization.CultureInfo.InvariantCulture))
 	{
-		//csv.Configuration.PrepareHeaderForMatch = (string header, int index) => header.ToLower();
-		//csv.Configuration.HasHeaderRecord = true;
 		csv.Read();
 		csv.ReadHeader();
 		while (csv.Read())
@@ -821,19 +851,31 @@ IList<Extractor.Poco> LoadFailedFromFile()
 			l.ResourceGroup = rg;
 			l.LogicAppName = la;
 			l.RunId = runid;
-			list.Add(l);
-
+			failedExport.Add(l);
 		}
 	}
 
-	return list;
+	failedExport.Dump("failed-export");
+	// WARNING REPLAY 
+	foreach (var f in failedExport)
+	{
+		try
+		{
+			var run = await Client.LogicAppService.ResubmitAsync(SubscriptionId, f.ResourceGroup, f.LogicAppName, f.RunId);
+			Console.WriteLine($"{f.RunId} {run.IsSuccessStatusCode}");
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"{f.RunId} {ex.Message}");
+		}
+	}
 }
 
 async Task Resubmit(LogicAppExtract failed)
 {
 	Console.WriteLine($"{SubscriptionId} {failed.ResourceGroup}  {failed.LogicAppName} {failed.ActionName} {failed.RunId}");
 	//string triggerName = "manual";
-	var run = await Client.LogicAppService.ResubmitAsync(SubscriptionId, failed.ResourceGroup, failed.LogicAppName, failed.RunId);
+    var run = await Client.LogicAppService.ResubmitAsync(SubscriptionId, failed.ResourceGroup, failed.LogicAppName, failed.RunId);
 	Console.WriteLine(run.IsSuccessStatusCode);
 }
 
@@ -870,6 +912,7 @@ async System.Threading.Tasks.Task GetLogicApps()
 			LogicApps.Add(new KeyValuePair<string, string>(rg, x.Name));
 		}
 	}
+	LogicApps.Dump("Logic Apps");
 }
 
 void FindFailed()
@@ -929,4 +972,29 @@ void FindFailed()
 //
 //	LINQPad.Extensions.Dump(qry);
 
+public class ExtractLogicAppPayload
+{
+	public string Token { get; set; }
+	public string ResourceGroup { get; set; }
 
+	public string LogicAppName { get; set; }
+
+	public bool FailedOnly { get; set; } = false;
+
+	public bool Export { get; set; } = true;
+
+	public DateTime StartDateTime { get; set; }
+
+	public DateTime EndDateTime { get; set; }
+
+	//string resourceGroupName = req.Query["ResourceGroupName"];
+	//string logicAppName = req.Query["LogicAppName"];
+	//string failedOnly = req.Query["FailedOnly"];
+	//    if (!string.IsNullOrEmpty(failedOnly))
+	//{
+	//    _extractFailedOnly = Convert.ToBoolean(failedOnly);
+	//}
+
+	//string startDateTime = req.Query["StartDateTime"];
+	//string endDateTime = req.Query["EndDateTime"];
+}
