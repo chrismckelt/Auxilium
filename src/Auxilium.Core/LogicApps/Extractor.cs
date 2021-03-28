@@ -14,7 +14,7 @@ namespace Auxilium.Core.LogicApps
     public class Extractor
     {
         public static IApiClient Client { get; set; }
-        public static string Token { get; set; }
+        public static string Token { get; private set; }
 
         public List<LogicAppExtract> Data { get; set; } = new List<LogicAppExtract>();
         public IPagedCollection<ISubscription> Subscriptions { get; set; }
@@ -135,7 +135,7 @@ namespace Auxilium.Core.LogicApps
             Consoler.Information($"*** Extract {logicAppName} ***");
 			var runs = await Client.LogicAppService.WorkflowRunListAsync(AzureEnvVars.SubscriptionId, resourceGroupName, logicAppName,startTimeBegin:startDateTime, startTimeEnd:endDateTime);
 
-			foreach (var r in runs.Value.Take(500).Select(x => x.Name).Distinct())
+			foreach (var r in runs.Value.Take(1000).Select(x => x.Name).Distinct())
 			{
 				//string runid = "08586013893585485487155006807CU03";
 				var target = await Client.LogicAppService.WorkflowRunGetAsync(AzureEnvVars.SubscriptionId, resourceGroupName, logicAppName, r);

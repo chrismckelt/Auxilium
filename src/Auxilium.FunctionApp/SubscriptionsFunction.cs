@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Auxilium.Core;
 using Auxilium.Core.LogicApps;
@@ -24,7 +25,21 @@ namespace Auxilium.FunctionApp
         {
             log.LogInformation("SubscriptionsFunction started");
 
+
+            var authHeader = req.Headers.Single(x=>x.Key=="Authorization");
+
+            // Check that the Authorization header is present in the HTTP request and that it is in the
+            //// format of "Authorization: Bearer <token>"
+            if (string.IsNullOrEmpty(authHeader.Value))
+            {
+                // return HTTP 401 Unauthorized
+                return new UnauthorizedObjectResult("Invalid Token");
+            }
+
+            var token = authHeader.Value.ToString().Replace("Bearer","").Trim();
+
             Extractor = new Extractor();
+            Extractor.Authenticate(token);
             await Extractor.Load();
 
             return new OkObjectResult(Extractor.Subscriptions);
