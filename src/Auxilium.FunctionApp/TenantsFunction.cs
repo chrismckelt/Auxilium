@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Auxilium.Core;
 using Auxilium.Core.Utilities;
@@ -23,17 +24,10 @@ namespace Auxilium.FunctionApp
         {
             log.LogInformation("TenantsFunction started");
 
-            string name = req.Query["name"];
+            var authHeader = req.Headers.Single(x => x.Key == "Authorization");
+            if (string.IsNullOrEmpty(authHeader.Value)) return new UnauthorizedObjectResult("Invalid Token"); // return HTTP 401 Unauthorized
+            var token = authHeader.Value.ToString().Replace("Bearer", "").Trim();
 
-           // DateTime? startDate = null;
-
-            // _extractor = new Extractor();
-            // _extractor.Data = LoadDataFromDisk();
-            // //if (!startDate.HasValue) startDate = _extractor.Data.Select(x => x.StartTimeUtc).Max();
-            //
-            // await _extractor.Run(startDate);
-            // await  Export();
-            string token = AuthUtil.GetTokenFromConsole();
             Client = new ApiClient(AzureEnvVars.TenantId, AzureEnvVars.SubscriptionId, token);
 
             var resultList = await Client.TenantService.ListTenantsAsync();

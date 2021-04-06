@@ -7,7 +7,7 @@ namespace Auxilium.Core
 {
     public class AzureEnvVars
     {
-        public static string ClientId => TryTargets("AZURE_CLIENT_ID");
+        public static string ClientId => TryTargets("AZURE_CLIENT_ID"); // 1950a258-227b-4e31-a9cf-717495945fc2 --> pre-defined client from Microsoft for public use
         public static string TenantId => TryTargets("AZURE_TENANT_ID");
 
         public static string Username => TryTargets("AZURE_USERNAME");

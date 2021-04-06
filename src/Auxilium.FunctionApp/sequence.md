@@ -7,7 +7,7 @@ sequenceDiagram
     participant LogAnalytics
     LogicApp->>+FunctionApp: List logic apps for subscription
     FunctionApp->>+LogicApp: List of logic apps
-    LogicApp-->>LogicApp2: Extract logic app state
+    LogicApp-->>LogicApp2: Query logic app run
     loop GetActionState
         LogicApp2->>LogicApp2: Extract state
     end 

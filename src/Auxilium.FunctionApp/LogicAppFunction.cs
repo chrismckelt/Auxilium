@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Auxilium.Core.LogicApps;
@@ -28,8 +29,11 @@ namespace Auxilium.FunctionApp
             ILogger log)
         {
             log.LogInformation("LogicAppFunction started");
-
+            var authHeader = req.Headers.Single(x => x.Key == "Authorization");
+            if (string.IsNullOrEmpty(authHeader.Value)) return new UnauthorizedObjectResult("Invalid Token"); // return HTTP 401 Unauthorized
+            var token = authHeader.Value.ToString().Replace("Bearer", "").Trim();
             Extractor = new Extractor();
+            Extractor.Authenticate(token);
             await Extractor.Load();
            
             return new OkObjectResult(Extractor.LogicApps);

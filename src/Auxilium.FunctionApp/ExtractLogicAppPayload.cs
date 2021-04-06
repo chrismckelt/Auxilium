@@ -6,7 +6,6 @@ namespace Auxilium.FunctionApp
 {
     public class ExtractLogicAppPayload
     {
-        public string Token { get; set; }
         public string ResourceGroup { get; set; }
 
         public string LogicAppName { get; set; }
