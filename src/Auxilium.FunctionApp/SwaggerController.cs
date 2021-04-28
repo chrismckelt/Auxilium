@@ -15,7 +15,7 @@ namespace Auxilium.FunctionApp
 			[HttpTrigger(AuthorizationLevel.Function, "get", Route = "Swagger/json")] HttpRequestMessage req,
 			[SwashBuckleClient]ISwashBuckleClient swashBuckleClient)
 		{
-			return Task.FromResult(swashBuckleClient.CreateSwaggerDocumentResponse(req));
+			return Task.FromResult(swashBuckleClient.CreateSwaggerJsonDocumentResponse(req));
 		}
 
 		[SwaggerIgnore]

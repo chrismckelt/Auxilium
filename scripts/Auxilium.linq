@@ -672,9 +672,14 @@
   <Namespace>Newtonsoft.Json.Schema</Namespace>
   <Namespace>Newtonsoft.Json.Serialization</Namespace>
   <Namespace>System.Net.Http</Namespace>
+  <Namespace>System.Net.Http.Headers</Namespace>
   <Namespace>System.Runtime.Serialization.Formatters</Namespace>
   <Namespace>System.Threading.Tasks</Namespace>
 </Query>
+
+const string ResourceGroup = "";
+const string LogicAppName = "";
+const string EndPointUrl = "";
 
 public IPagedCollection<IResourceGroup> ResourceGroups { get; set; }
 public IList<KeyValuePair<string, string>> LogicApps = new List<KeyValuePair<string, string>>();
@@ -685,41 +690,23 @@ static readonly string SubscriptionId = AzureEnvVars.SubscriptionId;       // if
 const string ExportFolder = @"c:\temp\logic-app-extracts\";
 private static Extractor _extractor;
 
-private static readonly System.Net.Http.HttpClient client = new System.Net.Http.HttpClient() {
-Timeout = System.TimeSpan.FromMinutes(15)
-};
+private static readonly System.Net.Http.HttpClient HttpClient = new System.Net.Http.HttpClient() {Timeout = System.TimeSpan.FromMinutes(15)};
 
 async System.Threading.Tasks.Task Main()
 {
-		
+
 	Token = AuthUtil.GetTokenFromConsole();
 	Client = new ApiClient(TenantId, SubscriptionId, Token);
 	
-	var data = new ExtractLogicAppPayload();
-	data.Token = Token;
-	data.ResourceGroup ="gx-p-arg-pos-clickandcollect";
-	data.LogicAppName ="GX-Syd-P-ALA-POS-ClickAndCollect-Process-SalesOrdersUpdate-Magento";
-	data.StartDateTime =DateTime.UtcNow.AddMinutes(-1);
-	data.EndDateTime =DateTime.UtcNow;
-	data.FailedOnly = false;
-	data.Export = true;
-	var json = JsonConvert.SerializeObject(data);
-
-	using (var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
-	{
-		HttpResponseMessage result = await client.PostAsync("https://gxintegrationsupport.azurewebsites.net/api/ExtractLogicApp?code=lNTK9ScnqP95qYxta6UOP4ZD9W1DN3RwkY6LpHAogaloc0rzVwEcPg==", content);
-		result.EnsureSuccessStatusCode();
-		string returnValue = result.Content.ReadAsStringAsync().Result;
-		Console.Write(returnValue);
-	}
-
+	
+	await LogicAppStateExtractor();
 	return;
-
 	// ANALYSE.
 	// load subscription / resource groups / logic apps and display
 	await Load();
-	return;
-
+	//return;
+	//await ReplayFailedFromExportFile();
+	//return;
 	//return;
 	// EXTRACT
 	// extract logic app state for chosen subscription
@@ -729,7 +716,7 @@ async System.Threading.Tasks.Task Main()
 	//await Export(); // export to disk ExportFolder
 	
 	// search failed and optionally replay
-	string search = "502085970";
+	string search = "";
 	_extractor.Data
 //	.Where(x => Contains(x.Output, search) || Contains(x.Input, search))
 	.Distinct()
@@ -750,6 +737,61 @@ async System.Threading.Tasks.Task Main()
 		
 	// REPLAY FAILED
 	await ReplayFailed(failed.ToList());
+}
+
+async Task LogicAppStateExtractor()
+{
+	var start = DateTime.Parse("16/04/2021  6:13:50 AM");
+	var end = DateTime.Parse("16/04/2021  6:15:03 AM");
+
+	while (start < end) {
+		var target = start.AddMinutes(1);
+		var data = new ExtractLogicAppPayload();
+		data.Token = Token;
+		data.ResourceGroup= ResourceGroup;
+		data.LogicAppName = LogicAppName;
+		
+		data.StartDateTime = start;
+		data.EndDateTime = target;
+		data.FailedOnly = false;
+		data.Export = true;
+		var json = JsonConvert.SerializeObject(data);
+
+		using (var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
+		{
+			//HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+			HttpResponseMessage result = await HttpClient.PostAsync(EndPointUrl, content);
+			result.EnsureSuccessStatusCode();
+			string returnValue = await result.Content.ReadAsStringAsync();
+			Console.Write(returnValue);
+		}
+
+		start = target;
+		Thread.Sleep(3000);
+	}
+
+}
+
+async Task ExtractLogicApp()
+{
+	var data = new ExtractLogicAppPayload();
+	data.ResourceGroup = ResourceGroup;
+	data.LogicAppName = LogicAppName;
+	data.StartDateTime = DateTime.UtcNow.AddDays(-7);
+	data.EndDateTime = DateTime.UtcNow;
+	data.FailedOnly = false;
+	data.Export = true;
+	var json = JsonConvert.SerializeObject(data);
+
+
+	using (var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
+	{
+		HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
+		HttpResponseMessage result = await HttpClient.PostAsync(EndPointUrl, content);
+		result.EnsureSuccessStatusCode();
+		string returnValue = await result.Content.ReadAsStringAsync();
+		Console.Write(returnValue);
+	}
 }
 
 async Task ReplayFailed(IList<LogicAppExtract> failed)

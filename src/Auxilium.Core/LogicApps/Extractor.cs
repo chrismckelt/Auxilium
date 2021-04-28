@@ -172,6 +172,18 @@ namespace Auxilium.Core.LogicApps
 
                     };
 
+                    var keys = new string[] { "502334198", "502334188", "502334191", "502334195" };
+
+                    if (ContainsAny(keys, extract.Input))
+                    {
+                        Consoler.Success();
+                    }
+
+                    if (ContainsAny(keys, extract.Output))
+                    {
+                        Consoler.Success();
+                    }
+
                     if (!Data.Any(x => x.RunId == extract.RunId && x.ActionName == extract.ActionName))
                     {
                         Data.Add(extract);
@@ -185,6 +197,17 @@ namespace Auxilium.Core.LogicApps
 			}
 
             return JsonConvert.SerializeObject(Data);
+        }
+
+        static bool ContainsAny(string[] keys, string search)
+        {
+            if (string.IsNullOrEmpty(search)) return false;
+            foreach (var key in keys)
+            {
+                if (search.Contains(key)) return true;
+            }
+
+            return false;
         }
 
         async Task Search()

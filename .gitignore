@@ -340,3 +340,4 @@ ASALocalRun/
 healthchecksdb
 /.vscode
 /src/*.user
+scripts/Auxilium2-gitignored.linq

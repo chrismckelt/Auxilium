@@ -10,6 +10,7 @@ using Auxilium.Core;
 using Auxilium.Core.LogicApps;
 using Auxilium.Core.Utilities;
 using Microsoft.Azure.Management.ServiceBus.Fluent.Subscription.Definition;
+using Microsoft.WindowsAzure;
 using Newtonsoft.Json;
 
 
@@ -41,40 +42,43 @@ namespace Auxilium.Host
 
         private static async Task Run(string[] args)
         {
-            var dt = DateTime.Parse("20/02/2021  0:00:00 PM");
-            int hoursAgo = Convert.ToInt32((DateTime.UtcNow-dt).TotalHours) * -1;
-            int hoursToAdd = 12;
+            var dt = DateTime.Parse("16/04/2021  6:13:51 AM");
+            int minutesAgo = Convert.ToInt32((DateTime.UtcNow-dt).TotalMinutes) * -1;
+            int minutesToAdd = 10;
             //_extractor = new Extractor();
            // await _extractor.Load();
 
             if (args.Any())
             {
-                hoursAgo = Convert.ToInt32(args[0]);
+                minutesAgo = Convert.ToInt32(args[0]);
             }
 
-            while (hoursAgo < hoursToAdd)
+            while (minutesAgo < minutesToAdd)
             {
                 try
                 {
-                    Consoler.TitleStart($"Hours ago {hoursAgo}");
-                    await Extract(hoursAgo, hoursToAdd);
-                    Consoler.TitleEnd($"Hours ago {hoursAgo}");
+                    Consoler.TitleStart($"minutes ago {minutesAgo}");
+                    await Extract(minutesAgo, minutesToAdd);
+                    Consoler.TitleEnd($"minutes ago {minutesAgo}");
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
                 }
 
-                hoursAgo = hoursAgo + hoursToAdd;
+                minutesAgo = minutesAgo + minutesToAdd;
             }
 
             Console.ReadLine();
         }
 
-        private static async Task Extract(int hoursAgo, int hoursToExtract = 1)
+        private static async Task Extract(int minutesAgo, int minutesToExtract = 1)
         {
-            DateTime? startDate = DateTime.UtcNow.AddHours(hoursAgo);
-            DateTime? endDate = DateTime.UtcNow.AddHours(hoursAgo+ hoursToExtract);
+          //  DateTime? startDate = DateTime.UtcNow.AddMinutes(minutesAgo);
+          //  DateTime? endDate = DateTime.UtcNow.AddMinutes(minutesAgo+ minutesToExtract);
+
+            DateTime? startDate = DateTime.Parse("16/04/2021  6:13:50 AM");
+            DateTime? endDate = DateTime.Parse("16/04/2021  6:15:03 AM");
 
             ////if (!startDate.HasValue) startDate = _extractor.Data.Select(x => x.StartTimeUtc).Max();
             Consoler.Information($"start {startDate}");
@@ -84,34 +88,36 @@ namespace Auxilium.Host
 
             var list = new List<string>()
             {
-                "GX-Syd-P-ALA-POS-ClickAndCollect-Execute-SalesOrdersUpdate-Magento",
-                "GX-Syd-P-ALA-LSCentral-BLoyal-Save-Transaction",
-                "GX-Syd-P-ALA-WMS-Purecomm-Create-Shipping-Request",
-                "GX-Syd-P-ALA-WMS-Purecomm-Create-CaseInfo-Request",
-                "GX-Syd-P-ALA-POS-ClickAndCollect-Execute-SalesOrdersCreation-LSCentral",
-                "GX-Syd-P-ALA-POS-ClickAndCollect-Process-SalesOrders-LSCentral"
 
             };
 
             var tasks = new List<Task>();
-
-            foreach (var item in list)
+            var extractor = new Extractor();
+            await extractor.Load();
+            foreach (var la in list)
             {
-                var task = Task.Run(async () => {
-                    var extractor = new Extractor();
-                    await extractor.Load();
-                    var rg = extractor.LogicApps.Single(x => x.Key == item).Value;
-                    await extractor.ExtractLogicApp(rg, item, true, false, startDate, endDate);
-                });
+                var item = extractor.LogicApps.SingleOrDefault(x => x.Value == la);
+                await extractor.ExtractLogicApp(item.Key, item.Value, false, true, startDate, endDate);
 
-                tasks.Add(task);
+                //var task = Task.Run(async () => {
+                  
+
+                //    //while (startDate > endDate && rg.Value!=null)
+                //    //{
+                //    //    var dt = startDate.Value.AddMinutes(5);
+                       
+                //    //    startDate = dt;
+                //    //}
+                //});
+
+                //tasks.Add(task);
 
             }
 
-            await Task.WhenAll(tasks);
+          //  await Task.WhenAll(tasks);
 
             //await _extractor.Run(startDate, endDate);
-            await Export();
+            await Export(extractor);
         
              
         }
@@ -139,14 +145,14 @@ namespace Auxilium.Host
             return data;
         }
 
-        private static async Task Export()
+        private static async Task Export(Extractor extractor)
         {
-            var las = _extractor.LogicApps.Select(x => x.Value).Distinct();
+            var las = extractor.LogicApps.Select(x => x.Value).Distinct();
             foreach (var logicAppName in las)
             {
                 var exportItems = new List<LogicAppExtract>();
                 string file = Path.Combine(ExportFolder, $"{logicAppName}.json");
-                var data = _extractor.Data.Where(x => x.LogicAppName == logicAppName);
+                var data = extractor.Data.Where(x => x.LogicAppName == logicAppName);
                 if (File.Exists(file))
                 {
                     // load existing data from file and resave without duplicates
@@ -180,6 +186,5 @@ namespace Auxilium.Host
                 }
             }
         }
-
     }
 };
