@@ -677,9 +677,9 @@
   <Namespace>System.Threading.Tasks</Namespace>
 </Query>
 
-const string ResourceGroup = "";
-const string LogicAppName = "";
-const string EndPointUrl = "";
+const string ResourceGroup = "YOUR RESOURCE GROUP";
+const string LogicAppName = "YOUR LOGIC APP";
+const string EndPointUrl = "LOGIC APP ENDPOINT THAT WILL CALL A EXTRACT ON EACH LOGIC APP";
 
 public IPagedCollection<IResourceGroup> ResourceGroups { get; set; }
 public IList<KeyValuePair<string, string>> LogicApps = new List<KeyValuePair<string, string>>();
@@ -694,49 +694,30 @@ private static readonly System.Net.Http.HttpClient HttpClient = new System.Net.H
 
 async System.Threading.Tasks.Task Main()
 {
-
 	Token = AuthUtil.GetTokenFromConsole();
 	Client = new ApiClient(TenantId, SubscriptionId, Token);
-	
-	
-	await LogicAppStateExtractor();
-	return;
+
 	// ANALYSE.
 	// load subscription / resource groups / logic apps and display
-	await Load();
-	//return;
-	//await ReplayFailedFromExportFile();
-	//return;
-	//return;
+	await ShowSubscriptions();
+	await ShowResourceGroups();
+	await ShowLogicApps();
+
 	// EXTRACT
-	// extract logic app state for chosen subscription
 	_extractor = new Extractor();
-	//_extractor.Data = LoadDataFromDisk();
-	//await _extractor.Run(DateTime.UtcNow.Date.AddHours(-12));
-	//await Export(); // export to disk ExportFolder
+	_extractor.Authenticate(Token);
+	await _extractor.Load();
+	await _extractor.ExtractLogicApp(ResourceGroup, LogicAppName, true,false);
+	_extractor.Data.Dump("Logic-App-Extracts");
 	
-	// search failed and optionally replay
-	string search = "";
-	_extractor.Data
-//	.Where(x => Contains(x.Output, search) || Contains(x.Input, search))
-	.Distinct()
-	.Dump("data");
 
-	var ignore = new List<string>() { "Terminated", "ActionSkipped", "OK", "NotSpecified" };
-	var runs = from p in _extractor.Data.Where(x => !ignore.Contains(x.StatusCode))
-			   group p by p.RunId into g
-			   select new { RunId = g.Key, ActionName = g.ToList().Where(x => x.RunId == g.Key).Distinct() };
+}
 
-	runs.Dump("runs");
-
-	var failed = _extractor.Data
-	.Where(x => x.StartTimeUtc > DateTime.UtcNow.AddHours(-4))
-	.Where(x => x.Status == "Failed")
-	.Distinct()
-	.Dump("failed");
-		
-	// REPLAY FAILED
-	await ReplayFailed(failed.ToList());
+async Task Load()
+{
+	await ShowSubscriptions();
+	await ShowResourceGroups();
+	await ShowLogicApps();
 }
 
 async Task LogicAppStateExtractor()
@@ -744,13 +725,14 @@ async Task LogicAppStateExtractor()
 	var start = DateTime.Parse("16/04/2021  6:13:50 AM");
 	var end = DateTime.Parse("16/04/2021  6:15:03 AM");
 
-	while (start < end) {
+	while (start < end)
+	{
 		var target = start.AddMinutes(1);
 		var data = new ExtractLogicAppPayload();
 		data.Token = Token;
-		data.ResourceGroup= ResourceGroup;
+		data.ResourceGroup = ResourceGroup;
 		data.LogicAppName = LogicAppName;
-		
+
 		data.StartDateTime = start;
 		data.EndDateTime = target;
 		data.FailedOnly = false;
@@ -772,63 +754,7 @@ async Task LogicAppStateExtractor()
 
 }
 
-async Task ExtractLogicApp()
-{
-	var data = new ExtractLogicAppPayload();
-	data.ResourceGroup = ResourceGroup;
-	data.LogicAppName = LogicAppName;
-	data.StartDateTime = DateTime.UtcNow.AddDays(-7);
-	data.EndDateTime = DateTime.UtcNow;
-	data.FailedOnly = false;
-	data.Export = true;
-	var json = JsonConvert.SerializeObject(data);
-
-
-	using (var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json"))
-	{
-		HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token);
-		HttpResponseMessage result = await HttpClient.PostAsync(EndPointUrl, content);
-		result.EnsureSuccessStatusCode();
-		string returnValue = await result.Content.ReadAsStringAsync();
-		Console.Write(returnValue);
-	}
-}
-
-async Task ReplayFailed(IList<LogicAppExtract> failed)
-{
-	Consoler.Message("WARNING - Replaying Logic Apps - continue?");
-	Consoler.Information("Hit Y for YES to execute replay");
-	//var res = Console.ReadLine();
-	bool doit = true;// (res.ToUpperInvariant() == "Y")
-	if (doit)
-	{
-		Consoler.Write("REPLAYING");
-		foreach (var f in failed)
-		{
-			Consoler.Write($"Run {f}");
-			await Resubmit(f);
-			Thread.Sleep(3000);
-		}
-	}
-}
-
-static bool Contains(string source, string search)
-{
-	if (string.IsNullOrWhiteSpace(source)) return false;
-
-	if (source.Contains(search)) return true;
-
-	return false;
-}
-
-async Task Load()
-{
-	await GetSubscriptions();
-	await GetResourceGroups();
-	await GetLogicApps();
-}
-
-private static List<LogicAppExtract> LoadDataFromDisk()
+static List<LogicAppExtract> LoadDataFromDisk()
 {
 	foreach (var f in Directory.GetFiles(ExportFolder, "*.json"))
 	{
@@ -849,7 +775,7 @@ private static List<LogicAppExtract> LoadDataFromDisk()
 	return _extractor.Data;
 }
 
-private static async Task Export()
+static async Task Export()
 {
 	foreach (var logicAppName in _extractor.Data.Select(x => x.LogicAppName).Distinct())
 	{
@@ -871,6 +797,60 @@ private static async Task Export()
 		}
 
 		exportItems.SaveToFile(file);
+	}
+}
+
+async System.Threading.Tasks.Task ShowSubscriptions()
+{
+	var subs = await Client.AzureService.Subscriptions.ListAsync();
+	subs.Dump("Subscriptions");
+	var sub = subs.Single(x => x.DisplayName == AzureEnvVars.SubscriptionName);
+
+	//var res = await Client.ResourceService.ListAsync(sub.SubscriptionId);
+	//	res.Value.Select(x=>x.Type).Dump(sub.SubscriptionId);
+	//
+	//	var results = from p in res.Value
+	//				  group p.Type by p.Type into g
+	//				  select new { Type = g.Key, Total = g.Count() };
+	//				  
+	//res.Dump();
+}
+
+async System.Threading.Tasks.Task ShowResourceGroups()
+{
+	ResourceGroups = await Client.AzureService.ResourceGroups.ListAsync(true);
+	ResourceGroups.Dump("Resource Groups");
+}
+
+async System.Threading.Tasks.Task ShowLogicApps()
+{
+	foreach (var rg in ResourceGroups.Select(x => x.Name).Distinct())
+	{
+		var r = await Client.LogicAppService.ListAsync(SubscriptionId, rg);
+
+		foreach (var x in r.Value)
+		{
+			LogicApps.Add(new KeyValuePair<string, string>(rg, x.Name));
+		}
+	}
+	LogicApps.Dump("Logic Apps");
+}
+
+async Task ReplayFailed(IList<LogicAppExtract> failed)
+{
+	Consoler.Message("WARNING - Replaying Logic Apps - continue?");
+	Consoler.Information("Hit Y for YES to execute replay");
+	//var res = Console.ReadLine();
+	bool doit = true;// (res.ToUpperInvariant() == "Y")
+	if (doit)
+	{
+		Consoler.Write("REPLAYING");
+		foreach (var f in failed)
+		{
+			Consoler.Write($"Run {f}");
+			await Resubmit(f);
+			Thread.Sleep(3000);
+		}
 	}
 }
 
@@ -917,44 +897,8 @@ async Task Resubmit(LogicAppExtract failed)
 {
 	Console.WriteLine($"{SubscriptionId} {failed.ResourceGroup}  {failed.LogicAppName} {failed.ActionName} {failed.RunId}");
 	//string triggerName = "manual";
-    var run = await Client.LogicAppService.ResubmitAsync(SubscriptionId, failed.ResourceGroup, failed.LogicAppName, failed.RunId);
+	var run = await Client.LogicAppService.ResubmitAsync(SubscriptionId, failed.ResourceGroup, failed.LogicAppName, failed.RunId);
 	Console.WriteLine(run.IsSuccessStatusCode);
-}
-
-async System.Threading.Tasks.Task GetSubscriptions()
-{
-	var subs = await Client.AzureService.Subscriptions.ListAsync();
-	subs.Dump("Subscriptions");
-	var sub = subs.Single(x => x.DisplayName == AzureEnvVars.SubscriptionName);
-
-	//var res = await Client.ResourceService.ListAsync(sub.SubscriptionId);
-	//	res.Value.Select(x=>x.Type).Dump(sub.SubscriptionId);
-	//
-	//	var results = from p in res.Value
-	//				  group p.Type by p.Type into g
-	//				  select new { Type = g.Key, Total = g.Count() };
-	//				  
-	//res.Dump();
-}
-
-async System.Threading.Tasks.Task GetResourceGroups()
-{
-	ResourceGroups = await Client.AzureService.ResourceGroups.ListAsync(true);
-	ResourceGroups.Dump("Resource Groups");
-}
-
-async System.Threading.Tasks.Task GetLogicApps()
-{
-	foreach (var rg in ResourceGroups.Select(x => x.Name).Distinct())
-	{
-		var r = await Client.LogicAppService.ListAsync(SubscriptionId, rg);
-
-		foreach (var x in r.Value)
-		{
-			LogicApps.Add(new KeyValuePair<string, string>(rg, x.Name));
-		}
-	}
-	LogicApps.Dump("Logic Apps");
 }
 
 void FindFailed()

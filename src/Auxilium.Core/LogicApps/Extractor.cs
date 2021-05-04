@@ -172,7 +172,7 @@ namespace Auxilium.Core.LogicApps
 
                     };
 
-                    var keys = new string[] { "502334198", "502334188", "502334191", "502334195" };
+                    var keys = new string[] { "" };
 
                     if (ContainsAny(keys, extract.Input))
                     {
