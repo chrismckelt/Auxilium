@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Auxilium.Core.Utilities;
+﻿using Auxilium.Core.Utilities;
 using Shouldly;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Auxilium.Core.Tests
+namespace Auxilium.Core.Tests.Utilities
 {
     public class AzureUtilityTests
     {
@@ -21,7 +17,7 @@ namespace Auxilium.Core.Tests
         [Fact]
         public void Will_parse_resource_group_name_from_full_resource_id()
         {
-            const string id = @"/subscriptions/4d123af1-c6dc-488f-8979-57f6607a585b/resourcegroups/blog/providers/microsoft.operationalinsights/workspaces/";
+            string id = $@"/subscriptions/{AzureEnvVars.SubscriptionId}/resourcegroups/blog/providers/microsoft.operationalinsights/workspaces/";
             string res = AzureUtility.ParseResourceGroupName(id);
             _testOutputHelper.WriteLine(res);
 

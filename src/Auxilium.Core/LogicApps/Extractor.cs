@@ -151,8 +151,7 @@ namespace Auxilium.Core.LogicApps
 
                 foreach (var value in workflowRunValues.Select(x => x.Name).Distinct())
 				{
-					var act = await Client.LogicAppService.WorkflowRunGetActionAsync(AzureEnvVars.SubscriptionId, resourceGroupName,
-						logicAppName, r, value);
+					var act = await Client.LogicAppService.WorkflowRunGetActionAsync(AzureEnvVars.SubscriptionId, resourceGroupName, logicAppName, r, value);
 
                     var extract = new LogicAppExtract
                     {
