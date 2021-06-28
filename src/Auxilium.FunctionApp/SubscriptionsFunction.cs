@@ -25,9 +25,9 @@ namespace Auxilium.FunctionApp
         {
             log.LogInformation("SubscriptionsFunction started");
 
-            var authHeader = req.Headers.Single(x=>x.Key=="Authorization");
-            if (string.IsNullOrEmpty(authHeader.Value)) return new UnauthorizedObjectResult("Invalid Token"); // return HTTP 401 Unauthorized
-            var token = authHeader.Value.ToString().Replace("Bearer","").Trim();
+            var authHeader = req.Headers.SingleOrDefault(x => x.Key == "Authorization");
+            if (authHeader.Key == null || string.IsNullOrEmpty(authHeader.Value)) return new UnauthorizedObjectResult("Invalid Token"); // return HTTP 401 Unauthorized
+            var token = authHeader.Value.ToString().Replace("Bearer", "").Trim();
 
             Extractor = new Extractor();
             Extractor.Authenticate(token);
