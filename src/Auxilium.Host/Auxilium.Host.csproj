@@ -15,7 +15,7 @@
     <PackageReference Include="Microsoft.Azure.OperationalInsights" Version="1.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
     <PackageReference Include="Microsoft.WindowsAzure.Management.Libraries" Version="2.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
   </ItemGroup>
 
   <ItemGroup>
